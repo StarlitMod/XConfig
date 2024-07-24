@@ -109,7 +109,7 @@ DECL_HOOKv(CGame__Process){
 		if(!nLastSavingTime) nLastSavingTime = nTimeInMs;
 		else if(nTimeInMs - nLastSavingTime > nSaveIntervalTime){
 			if(!*AllowMissionReplay){
-				bool res = SaveGameForPause(eSaveTypes::SAVETYPE_AUTOSAVE);
+				bool res = SaveGameForPause(eSaveTypes::eExitSave);
 				logger->Info("Autosave %s", res ? "completed" : "failed");
 			} else logger->Info("Autosave skipped %d", !*AllowMissionReplay);
 			nLastSavingTime = nTimeInMs;

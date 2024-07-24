@@ -14,7 +14,7 @@ namespace CCheat{
 	bool (*m_aCheatsActive)[105];
 	bool *m_bHasPlayerCheated;
 	char16_t* *m_CheatString;
-	uint32 *m_nCheatStringSize;
+	uint32 *m_nCheatStringSize; //这个实际上是前一个FString的长度成员
 	void (*ScriptBypassCheat)();
 	void (*TimeTravelCheat)();
 	//void (*TogglePlayerInvincibility)();
@@ -41,7 +41,7 @@ namespace CCheat{
 			if(*pos1 && (tolower(*pos1++) != tolower(*pos2++)))
 				return false;
 			pos1++;
-			if(!*((char16_t*)pos1)){
+			if(!*((char16_t*)pos1)){ //其实是个很蠢的对比方案，这也是宽字符恶心的地方
 				*CCheat::m_nCheatStringSize = 0;
 				(*CCheat::m_CheatString)[0] = 0;
 				return true;
@@ -57,12 +57,12 @@ struct _CPed{
 	private: byte gap3C[0x6A4];
 	public: AssocGroupId m_nAnimGroup;
 }; VALIDATE_OFFSET(_CPed, m_nAnimGroup, 0x6E0);
-namespace CClothes{
+/*namespace CClothes{
 	void (*RebuildPlayer)(_CPed* player, bool bIgnoreFatAndMuscle);
 	void _Init(){
 		SET_TO(RebuildPlayer, SYM("_ZN8CClothes13RebuildPlayerEP10CPlayerPedb"));
 	}
-}
+}*/
 struct CEntryExit {
 	char    m_szName[8];
 	CRect   m_recEntrance;
@@ -209,9 +209,9 @@ namespace CHud{
 	}
 }
 enum eVehicleType {
-    VEHICLE_TYPE_IGNORE = -1, VEHICLE_TYPE_AUTOMOBILE, VEHICLE_TYPE_MTRUCK, // MONSTER TRUCK
-    VEHICLE_TYPE_QUAD, VEHICLE_TYPE_HELI, VEHICLE_TYPE_PLANE, VEHICLE_TYPE_BOAT, VEHICLE_TYPE_TRAIN,
-    VEHICLE_TYPE_FHELI, VEHICLE_TYPE_FPLANE, VEHICLE_TYPE_BIKE, VEHICLE_TYPE_BMX, VEHICLE_TYPE_TRAILER
+    VEHICLE_TYPE_NONE = -1, VEHICLE_TYPE_CAR, VEHICLE_TYPE_MONSTERTRUCK,
+    VEHICLE_TYPE_QUADBIKE, VEHICLE_TYPE_HELI, VEHICLE_TYPE_PLANE, VEHICLE_TYPE_BOAT, VEHICLE_TYPE_TRAIN,
+    VEHICLE_TYPE_NOT_USED, VEHICLE_TYPE_FAKE_PLANE, VEHICLE_TYPE_BIKE, VEHICLE_TYPE_BMX, VEHICLE_TYPE_TRAILER
 };
 namespace CModelInfo{
 	eVehicleType (*IsVehicleModelType)(int index);
@@ -219,7 +219,11 @@ namespace CModelInfo{
 		SET_TO(IsVehicleModelType, SYM("_ZN10CModelInfo18IsVehicleModelTypeEi"));
 	}
 }
-struct _CPad *Pads;
+struct _CPad{
+	private: byte gap0[0x15A];
+	public:  bool bDisablePlayerDuck;
+	private: byte gap15B[0x25];
+}(*Pads)[2]; VALIDATE_SIZE(_CPad, 0x180); VALIDATE_OFFSET(_CPad, bDisablePlayerDuck, 0x15A);
 namespace CPad{
 	uintptr_t GetCarGunFired;
 	uintptr_t GetPedWalkLeftRight;
@@ -345,6 +349,26 @@ namespace CStats{
 		SET_TO(SetStatValue, SYM("_ZN6CStats12SetStatValueEtf"));
 	}
 }
+enum eStreamingLoadState : uint8 {LOADSTATE_NOT_LOADED, LOADSTATE_LOADED, };
+struct STRU_ALIGNED(4) CStreamingInfo{
+	private: byte gap0[8];
+	public:  short m_nextIndex, m_prevIndex;
+	private: byte gapC;
+ 	public:  byte m_status;
+}; VALIDATE_SIZE(CStreamingInfo, 16); VALIDATE_OFFSET(CStreamingInfo, m_status, 0xD); //DE的这个结构和原版不同
+enum eStreamingFlags{STREAMING_GAME_REQUIRED = 0x2};
+namespace CStreaming{
+	CStreamingInfo (*ms_aInfoForModel)[26316];
+	void (*RequestModel)(int modelId, eStreamingFlags flags, bool);
+	void (*LoadAllRequestedModels)(bool); //逆天GSG工作室特有的无意义bool参数
+	void (*SetModelIsDeletable)(int modelId);
+	inline void _Init(){
+		SET_TO(ms_aInfoForModel, SYM("_ZN10CStreaming16ms_aInfoForModelE"));
+		SET_TO(RequestModel, SYM("_ZN10CStreaming12RequestModelEiib"));
+		SET_TO(LoadAllRequestedModels, SYM("_ZN10CStreaming22LoadAllRequestedModelsEb"));
+		SET_TO(SetModelIsDeletable, SYM("_ZN10CStreaming19SetModelIsDeletableEi"));
+	}
+}
 namespace CTheScripts{
 	//bool (*IsPlayerOnAMission)();
 	byte (*ScriptSpace)[339000];
@@ -404,11 +428,11 @@ float fMaxFPSToCalcColor;
 
 void RespondCheatActivited(bool activited){
 	static char16_t* text = new char16_t[20];
-	if(activited)AsciiToGxtChar("CHEAT1", text);
+	if(activited)AsciiToGxtChar("CHEAT1", text); //不能用字面量
 	else AsciiToGxtChar("CHEAT8", text);
 	CHud::SetHelpMessage(text, true, false, false, 0, 0);
 	if(bIncreaseTimesCheated){
-		*CAchievement::messagedAboutCheating = true;
+		*CAchievement::messagedAboutCheating = true; //没什么用，游戏内实现作弊反馈也有那我就写了
 		*CCheat::m_bHasPlayerCheated = true;
 		CStats::IncrementStat(STAT_TIMES_CHEATED, 1.f);
 	}
@@ -433,38 +457,35 @@ DECL_HOOKv(CCheat__AddToCheatString, char LastPressedKey, bool p2){
 		else{
 			if(toupper(LastPressedKey) == 'S'){
 				auto type = CModelInfo::IsVehicleModelType(nID);
-				if(type != VEHICLE_TYPE_IGNORE && type != VEHICLE_TYPE_TRAIN){
+				if(type != VEHICLE_TYPE_NONE && type != VEHICLE_TYPE_TRAIN){ //VehicleCheat()没有实现刷火车，强制刷出会崩
 					logger->Info("Spawn %d", nID);
 					*CCheat::m_nCheatStringSize = 0;
 					(*CCheat::m_CheatString)[0] = 0;
-					//int32 oriOp = 0x94124626;
-					//if(type == VEHICLE_TYPE_TRAIN){
-					//	aml->PlaceBL(uintptr_t(CCheat::VehicleCheat)+0x778, SYM("_ZN6CTrainC2Eih"));
-					//	aml->Read(uintptr_t(CCheat::VehicleCheat)+0xA54, uintptr_t(&oriOp), 4);
-					//	aml->PlaceNOP(uintptr_t(CCheat::VehicleCheat)+0xA54);
-					//}
 					if(CCheat::VehicleCheat(nID, false, 1.0))
 						RespondCheatActivited(true);
-					//if(type == VEHICLE_TYPE_TRAIN){
-					//	aml->PlaceBL(uintptr_t(CCheat::VehicleCheat)+0x778, SYM("_ZN11CAutomobileC2Eihh"));
-					//	aml->Write32(uintptr_t(CCheat::VehicleCheat)+0xA54, oriOp);
-					//}
 				}
-			}/* else if(toupper(LastPressedKey) == 'T'){
-				static float muscle = 200.f;
+			}else if(toupper(LastPressedKey) == 'T'){
+				// static float muscle = 200.f;
 				_CPed* ped = FindPlayerPed(-1);
-				if(ped){
-					if(nID) muscle = CStats::GetStatValue(STAT_MUSCLE), CStats::SetStatValue(STAT_MUSCLE, 200.f);
-					else CStats::SetStatValue(STAT_MUSCLE, muscle);
-					CClothes::RebuildPlayer(ped, false);
-					AssocGroupId ang = ped->m_nAnimGroup;
-					CPed::DeleteRwObject(ped);
-					ped->m_nModelIndex = (eModelID)-1;
-					CPed::SetModelIndex(ped, nID);
-					ped->m_nAnimGroup = ang;
-					RespondCheatActivited(true);
+				if(ped){ //下面的部分基本算是几个opcode的重新实现（参考了KaizoM的脚本https://www.mixmods.com.br/2022/01/simple-skin-selector-ped-creator/）
+					//if(nID) muscle = CStats::GetStatValue(STAT_MUSCLE), CStats::SetStatValue(STAT_MUSCLE, 200.f);
+					//else CStats::SetStatValue(STAT_MUSCLE, muscle);
+					//CClothes::RebuildPlayer(ped, false);
+					CStreaming::RequestModel(nID, STREAMING_GAME_REQUIRED, false);
+					CStreaming::LoadAllRequestedModels(false);
+					if((*CStreaming::ms_aInfoForModel)[nID].m_status == LOADSTATE_LOADED){
+						AssocGroupId ang = ped->m_nAnimGroup;
+						CPed::DeleteRwObject(ped);
+						ped->m_nModelIndex = (eModelID)-1;
+						CPed::SetModelIndex(ped, nID);
+						ped->m_nAnimGroup = ang;
+						CStreaming::SetModelIsDeletable(nID);
+						if(nID) (*Pads)[0].bDisablePlayerDuck = true; //DE的bug导致改变模型后下蹲崩溃，暂时解决办法是禁止蹲下
+						else (*Pads)[0].bDisablePlayerDuck = false;   //万一有脚本把这个值改回来了（某些任务）就坏事了
+						RespondCheatActivited(true);
+					}
 				}
-			}*/
+			}
 			nID = 0;
 		}
 		/*if(CCheat::_TestCheat("teleport", 8)){
@@ -534,13 +555,13 @@ DECL_HOOKv(CGame__Process){
 		else if(nTimeInMs - nLastSavingTime > nSaveIntervalTime){
 			bool bPlayerIsInGarage = false;
 			for(auto& gar : *CGarages::aGarages)
-				if((1l<<gar.m_nType) & 0b1001111000000111111111000001110000000000000000
+				if((1l<<gar.m_nType) & 0b1001111000000111111111000001110000000000000000 //省得去用很多的if-else
 					&& !CGarage::IsPlayerOutsideGarage(&gar)){
 					bPlayerIsInGarage = true;
 					break;
 				}
 			if(!*AllowMissionReplay && !bPlayerIsInGarage && (bSaveInInteriors || !*CGame::currArea)){
-				bool res = SaveGameForPause(eSaveTypes::SAVETYPE_AUTOSAVE, nullptr);
+				bool res = SaveGameForPause(eSaveTypes::eExitSave, nullptr);
 				logger->Info("Autosave %s", res ? "completed" : "failed");
 			} else logger->Info("Autosave skipped %d %d (%d %d)", !*AllowMissionReplay, !bPlayerIsInGarage, bSaveInInteriors, !*CGame::currArea);
 			nLastSavingTime = nTimeInMs;
@@ -567,7 +588,7 @@ DECL_HOOKv(CGame__Process){
 				else if(int(blip.m_vPosition.x) == 0 && int(blip.m_vPosition.y) == 695) blip.m_vPosition.x = 2441.002;
 			}
 			int index = 0;
-			for(auto& gar : *CGarages::aGarages){
+			for(auto& gar : *CGarages::aGarages){ //这是防止房子还没买就给解锁了（但未经测试）
 				if(gar.m_nType == SAFEHOUSE_SANTAMARIA && !gar.m_bInactive
 					&& (index = CEntryExitManager::FindNearestEntryExit({316.0696, -1772.569}, 10.0, -1)))
 					(*CEntryExitManager::mp_poolEntryExits)->m_pObjects[index].bEnableAccess = true;
@@ -640,7 +661,7 @@ void Init(){
 	UGTASingleton::_Init();
 	CAchievement::_Init();
 	CCheat::_Init();
-	CClothes::_Init();
+	//CClothes::_Init();
 	CEntryExitManager::_Init();
 	CFont::_Init();
 	CGame::_Init();
@@ -656,10 +677,11 @@ void Init(){
 	CRadar::_Init();
 	CRunningScript::_Init();
 	CStats::_Init();
+	CStreaming::_Init();
 	CTimer::_Init();
 	CTheScripts::_Init();
 
-	cfg->Bind("IdeasFrom", "", "About")->SetString("RusJJ, Silent");
+	cfg->Bind("IdeasFrom", "", "About")->SetString("RusJJ, Silent, KaizoM");
 
 	bEnableAutoSave = cfg->GetBool("Enabled", true, "AutoSave");
 	ConfigEntry* entry = cfg->Bind("IntervalTime", 20, "AutoSave");

@@ -28,7 +28,8 @@ typedef uintptr_t DWORD_PTR;
 #define HIBYTE(w) ((BYTE) ((((DWORD_PTR) (w)) >> 8) & 0xff))
 
 
-
+#define STRU_PACKED_ALIGNED(n) __attribute__((packed)) __attribute__((aligned(n)))
+#define STRU_ALIGNED(n) __attribute__((aligned(n)))
 #define VALIDATE_SIZE(struc, size) static_assert(sizeof(struc) == size, "Invalid structure size of " #struc)
 #define VALIDATE_OFFSET(struc, member, offset) \
 	static_assert(offsetof(struc, member) == offset, "The offset of " #member " in " #struc " is not " #offset "...")
@@ -76,12 +77,13 @@ template <typename Ret, typename... Args> inline Ret CallAndReturn(uintptr_t add
 }
 
 enum eSaveTypes{
-	SAVETYPE_CHECKPOINT,
-	SAVETYPE_SCRIPTCALL,
-	SAVETYPE_AFTERMISSION,
-	SAVETYPE_AUTOSAVE,
-	SAVETYPE_ODDJOB,
-	SAVETYPE_NEWMISSION
+	eCheckpointSave,
+	eAutoSave,
+	eTerminateSave,
+	eExitSave,
+	eOddjobSave,
+	eStartMissionSave,
+	eNormalSave
 };
 
 struct CompressedVector {

@@ -2,14 +2,13 @@
 #include "mod/logger.h"
 #include "mod/config.h"
 
-MYMOD(com.xbeatless.xconfig, XConfig, Beta 9, BengbuGuards)
+MYMOD(com.starlit.xconfig, XConfig, Beta 8, BengbuGuards)
 static Config cfgLocal("XConfig");
 
 Config* cfg = &cfgLocal;
 uintptr_t pUE4;
 void* hUE4;
 #define SYM(sym) (aml->GetSym(hUE4, sym))
-#define STRU_PACKED_ALIGNED(n) __attribute__((packed)) __attribute__((aligned(n)))
 #include "types.inl"
 enum {III=1,VC,SA}nGame;
 enum {Netflex=1,Rockstar}nGameType;

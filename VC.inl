@@ -173,12 +173,12 @@ DECL_HOOKv(CGame__Process){
 			bool bPlayerIsInGarage = false;
 			for(auto& gar : *CGarages::aGarages)
 				if((gar.m_eGarageType - 24 <= 8 || gar.m_eGarageType - 16 <= 2)
-					&& !CGarage::IsPlayerOutsideGarage(&gar)){
+					&& !CGarage::IsPlayerOutsideGarage(&gar)){ //TODO：貌似不能用
 					bPlayerIsInGarage = true;
 					break;
 				}
 			if(!*ViceCity::AllowMissionReplay && !bPlayerIsInGarage && (bSaveInInteriors || !*CGame::currArea)){
-				bool res = ViceCity::SaveGameForPause(eSaveTypes::SAVETYPE_AUTOSAVE);
+				bool res = ViceCity::SaveGameForPause(eSaveTypes::eExitSave);
 				logger->Info("Autosave %s", res ? "completed" : "failed");
 			} else logger->Info("Autosave skipped %d %d (%d %d)", !*AllowMissionReplay, !bPlayerIsInGarage, bSaveInInteriors, !*CGame::currArea);
 			nLastSavingTime = nTimeInMs;
@@ -189,7 +189,7 @@ DECL_HOOKv(CGame__Process){
 		if(pPed && pPed->m_nPedState == PED_ANSWER_MOBILE){
 			if(!bSkipJustDown && CTouchInterface::IsReleased(CTouchInterface::WIDGET_PHONE, nullptr, 2))
 				bSkipJustDown = true;
-		} else bSkipJustDown = false;
+		} else bSkipJustDown = false; //TODO：多次来电，后边一样当跳过算了？状态怎么不保存
 	}
 	if(bFixMissingTextKey){
 		static bool fixed;
@@ -199,7 +199,7 @@ DECL_HOOKv(CGame__Process){
 	}
 	if(bFixLLBridgesTraffic){
 		#define givar(n) *((int*)*CTheScripts::ScriptSpace + n)
-		if(givar(541) && !givar(1239)){
+		if(givar(541) && !givar(1239)){ //TODO：貌似不能用
 			logger->Info("Fixing LLBridgeTraffic");
 			CPathFind::SwitchRoadsOffInArea(ThePaths, -291.0, -287.0, 0.0, 208.0, 648.0, 35.0, false);
 			CPathFind::SwitchRoadsOffInArea(ThePaths, -291.0, -287.0, 0.0, 208.0, 648.0, 35.0, false);
