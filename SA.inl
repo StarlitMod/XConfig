@@ -154,42 +154,42 @@ namespace CGame{
 	}
 }
 enum eGarageType : uint8 {
-	SAFEHOUSE_SANTAMARIA = 17,
-    SAFEHOUSE_ROCKSHORE = 18,
+	SAFEHOUSE_SANTAMARIA = 17, GARAGE_HIDEOUT_TWO = 17,
+	SAFEHOUSE_ROCKSHORE = 18,  GARAGE_HIDEOUT_THREE = 18,
 }; using eGarageDoorState = uint8;
 struct STRU_PACKED_ALIGNED(4) _CGarage{
-	CVector m_vPosn;
-	CVector2D m_vDirectionA;
-	CVector2D m_vDirectionB;
-	float m_fTopZ;
-	float m_fWidth;
-	float m_fHeight;
-	float m_fLeftCoord;
-	float m_fRightCoord;
-	float m_fFrontCoord;
-	float m_fBackCoord;
-	float m_fDoorPosition;
-	uint32 m_nTimeToOpen;
-	struct CVehicle *m_pTargetCar;
-	char m_anName[8];
-	eGarageType m_nType;
-	eGarageDoorState m_nDoorState;
+	CVector Base;
+	CVector2D Delta1;
+	CVector2D Delta2;
+	float CeilingZ;
+	float Delta1Length;
+	float Delta2Length;
+	float MinX;
+	float MaxX;
+	float MinY;
+	float MaxY;
+	float Openness;
+	uint32 TimeOfNextEvent;
+	struct CVehicle *pCarToCollect;
+	uchar Name[8];
+	eGarageType Type;
+	eGarageDoorState State;
 	union {
-        uint8 m_nFlags;
-        struct {
-            uint8 m_b0x1 : 1;
-            uint8 m_bInactive : 1;
-            uint8 m_bUsedRespray : 1;
-            uint8 m_bDoorOpensUp : 1;
-            uint8 m_bDoorGoesIn : 1;
-            uint8 m_bCameraFollowsPlayer : 1;
-            uint8 m_bDoorClosed : 1;
-            uint8 m_bRespraysAlwaysFree : 1;
-        };
-    };
-	eGarageType m_nOriginalType;
-	private: byte gap54[200];
-}; VALIDATE_SIZE(_CGarage, 0x11C); VALIDATE_OFFSET(_CGarage, m_nType, 80);
+		uint8 Flags;
+		struct {
+			uint8 bClosingEmpty : 1;
+			uint8 bDeActivated : 1;
+			uint8 bResprayHappened : 1;
+			uint8 bRotatyDoor : 1;
+			uint8 bInvertRotation : 1;
+			uint8 bLeaveCameraAlone : 1;
+			uint8 bShouldDoorsHaveCollision : 1;
+			uint8 bFreeResprays : 1;
+		};
+	};
+	eGarageType OriginalType;
+	private: byte m_DoorAudioEntity[200];
+}; VALIDATE_SIZE(_CGarage, 0x11C); VALIDATE_OFFSET(_CGarage, Type, 80);
 namespace CGarage{
 	bool (*IsPlayerOutsideGarage)(_CGarage* self);
 	inline void _Init(){
@@ -209,9 +209,9 @@ namespace CHud{
 	}
 }
 enum eVehicleType {
-    VEHICLE_TYPE_NONE = -1, VEHICLE_TYPE_CAR, VEHICLE_TYPE_MONSTERTRUCK,
-    VEHICLE_TYPE_QUADBIKE, VEHICLE_TYPE_HELI, VEHICLE_TYPE_PLANE, VEHICLE_TYPE_BOAT, VEHICLE_TYPE_TRAIN,
-    VEHICLE_TYPE_NOT_USED, VEHICLE_TYPE_FAKE_PLANE, VEHICLE_TYPE_BIKE, VEHICLE_TYPE_BMX, VEHICLE_TYPE_TRAILER
+	VEHICLE_TYPE_NONE = -1, VEHICLE_TYPE_CAR, VEHICLE_TYPE_MONSTERTRUCK,
+	VEHICLE_TYPE_QUADBIKE, VEHICLE_TYPE_HELI, VEHICLE_TYPE_PLANE, VEHICLE_TYPE_BOAT, VEHICLE_TYPE_TRAIN,
+	VEHICLE_TYPE_NOT_USED, VEHICLE_TYPE_FAKE_PLANE, VEHICLE_TYPE_BIKE, VEHICLE_TYPE_BMX, VEHICLE_TYPE_TRAILER
 };
 namespace CModelInfo{
 	eVehicleType (*IsVehicleModelType)(int index);
@@ -251,21 +251,21 @@ enum ePickupType : uint8 {
 	PICKUP_MONEY_DOESNTDISAPPEAR, PICKUP_SNAPSHOT, PICKUP_2P, PICKUP_ONCE_FOR_MISSION
 };
 struct STRU_PACKED_ALIGNED(4) CPickup{
-	float            m_fRevenueValue;
-	struct CObject*  m_pObject;
-	uint32           m_nAmmo;
-	uint32           m_nRegenerationTime;
-	CompressedVector m_vecPos;
-	uint16           m_nMoneyPerDay;
-	int16            m_nModelIndex;
-	int16            m_nReferenceIndex;
-	ePickupType      m_nPickupType;
+	float            CurrentValue;
+	struct CObject*  pObject;
+	uint32           MonetaryValue;
+	uint32           RegenerationTime;
+	CompressedVector Coors;
+	uint16           MoneyPerDay;
+	int16            MI;
+	int16            ReferenceIndex;
+	ePickupType      Type;
 	struct {
-	    uint8 bDisabled : 1; // waiting for regeneration
-	    uint8 bEmpty : 1;    // no ammo
-	    uint8 bHelpMessageDisplayed : 1;
-	    uint8 bVisible : 1;
-	    uint8 nPropertyTextIndex : 3; // see enum ePickupPropertyText
+		uint8 State : 1; // waiting for regeneration
+		uint8 bNoAmmo : 1;    // no ammo
+		uint8 bHelpMessageDisplayed : 1;
+		uint8 bIsPickupNearby : 1;
+		uint8 TextIndex : 3; // see enum ePickupPropertyText
 	} m_nFlags;
 }; VALIDATE_SIZE(CPickup, 36);
 namespace CPickups{
@@ -422,7 +422,7 @@ namespace {
 
 
 bool bRestoreDebuggingCheats, bIncreaseTimesCheated, bEnableTP, bShowFPS, bModernFonts, bEnableAutoSave, bSaveInInteriors, bFixMissingTextKey,
-	bFixIconInSea, bColorZoneName, bFixMissingShootBtnForPredator; uint8 nLastPatchGetCarGunFired;
+	bFixIconInSea, bColorZoneName, bFixBoatMovingHi, bFixMissingShootBtnForPredator; uint8 nLastPatchGetCarGunFired;
 int nLastSavingTime, nSaveIntervalTime;
 float fMaxFPSToCalcColor;
 
@@ -555,7 +555,7 @@ DECL_HOOKv(CGame__Process){
 		else if(nTimeInMs - nLastSavingTime > nSaveIntervalTime){
 			bool bPlayerIsInGarage = false;
 			for(auto& gar : *CGarages::aGarages)
-				if((1l<<gar.m_nType) & 0b1001111000000111111111000001110000000000000000 //省得去用很多的if-else
+				if((1l<<gar.Type) & 0b1001111000000111111111000001110000000000000000 //省得去用很多的if-else
 					&& !CGarage::IsPlayerOutsideGarage(&gar)){
 					bPlayerIsInGarage = true;
 					break;
@@ -573,10 +573,10 @@ DECL_HOOKv(CGame__Process){
 			logger->Info("Repairing iconInSea glitch!");
 			gfvar(2944) = -1969.27, gfvar(2947) = 316.0696, gfvar(2948) = 2441.002;
 			for(CPickup& pickup : *CPickups::aPickUps){
-				if(pickup.m_nPickupType == PICKUP_NONE) continue;
+				if(pickup.Type == PICKUP_NONE) continue;
 				//logger->Info("Pickup %f %f %f", pickup.m_vecPos.x/8.f, pickup.m_vecPos.y/8.f, pickup.m_vecPos.z/8.f);
-				if(pickup.m_vecPos.x == 0 && int(pickup.m_vecPos.y/8.f) == 282){
-					pickup.m_vecPos.x = -1969.27*8.f;
+				if(pickup.Coors.x == 0 && int(pickup.Coors.y/8.f) == 282){
+					pickup.Coors.x = -1969.27*8.f;
 					break;
 				}
 			}
@@ -588,11 +588,11 @@ DECL_HOOKv(CGame__Process){
 				else if(int(blip.m_vPosition.x) == 0 && int(blip.m_vPosition.y) == 695) blip.m_vPosition.x = 2441.002;
 			}
 			int index = 0;
-			for(auto& gar : *CGarages::aGarages){ //这是防止房子还没买就给解锁了（但未经测试）
-				if(gar.m_nType == SAFEHOUSE_SANTAMARIA && !gar.m_bInactive
+			for(auto& gar : *CGarages::aGarages){ //这是防止房子还没买就给解锁enex了（但未经测试）
+				if(gar.Type == GARAGE_HIDEOUT_TWO && !gar.bDeActivated
 					&& (index = CEntryExitManager::FindNearestEntryExit({316.0696, -1772.569}, 10.0, -1)))
 					(*CEntryExitManager::mp_poolEntryExits)->m_pObjects[index].bEnableAccess = true;
-				if(gar.m_nType == SAFEHOUSE_ROCKSHORE && !gar.m_bInactive
+				if(gar.Type == GARAGE_HIDEOUT_THREE && !gar.bDeActivated
 					&& (index = CEntryExitManager::FindNearestEntryExit({2441.002, 695.1089}, 10.0, -1)))
 					(*CEntryExitManager::mp_poolEntryExits)->m_pObjects[index].bEnableAccess = true;
 			}
@@ -622,6 +622,15 @@ DECL_HOOKv(CGame__Process){
 			UGameterSettings::OnLanguageSetEv(UGTASingleton::GetSettings(false, false, false)),
 			fixed = true;
 	}
+	/*if(bFixBoatMovingHi){ //神奇UE之字符串指针在运行时初始化
+		uintptr_t ms_vehicleDescs = SYM("_ZN17CVehicleModelInfo15ms_vehicleDescsE"),
+			boatIds = *(uintptr_t*)(ms_vehicleDescs + 40);
+		logger->Info("ms_vehicleDescs 0x%x  boatIds 0x%x", ms_vehicleDescs, boatIds);
+		uintptr_t (*FName)(const char*, int, int);
+		SET_TO(FName, SYM("_ZN5FNameC2EPKci9EFindName"));
+		*(uintptr_t*)boatIds = FName("boat_moving", 11, 1);
+		bFixBoatMovingHi = false;
+	}*/
 }
 /*CRGBA* CalcZoneName(){
 	if((*CPopCycle::m_pCurrZoneInfo)){
@@ -724,8 +733,7 @@ void Init(){
 	if((bFixMissingShootBtnForPredator = cfg->GetBool("FixMissingShootBtnForPredator", true, "Gameplay")))
 		aml->Write32(SYM("_ZN5CBoat14ProcessControlEv")+0x390, 0x52800021);
 
-	if(nGameType == Netflex && cfg->GetBool("BoatRotatingRadarFix", false, "Visual"))
-		aml->Write8(pUE4 + 0x2FF9CB8, 0);
+	// bFixBoatMovingHi = cfg->GetBool("BoatRotatingRadarFix", false, "Visual");
 
 	if((bColorZoneName = cfg->GetBool("ColouredZoneNames", true, "Visual")))
 		aml->Write(SYM("_ZN4CHud12DrawAreaNameEv")+0x3E4, "\x6A\x31\x40\x39" "\x6B\x35\x40\x39" "\x69\x00\x00\xB5" "\x4A\x00\x00\xB5" "\x8B\x00\x00\xB4", 20);
@@ -735,7 +743,7 @@ void Init(){
 	//HOOKBL(CHud__DrawAreaName, pBaseFunc+0x3F8);
 	
 	/*if(cfg->GetBool("NoRadioCuts", true, "Gameplay"))
-	    aml->Redirect(SYM("_Z14IsRemovedTracki"), (uintptr_t)ret0);*/
+		aml->Redirect(SYM("_Z14IsRemovedTracki"), (uintptr_t)ret0);*/
 
 	HOOKSYM(CCheat__AddToCheatString, hUE4, "_ZN6CCheat16AddToCheatStringEcb");
 	HOOKSYM(CGame__Process, hUE4, "_ZN5CGame7ProcessEv");

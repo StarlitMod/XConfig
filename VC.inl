@@ -119,7 +119,7 @@ namespace CTimer{
 }
 namespace CTouchInterface{
 	enum WidgetIDs : uint32 {WIDGET_PHONE = 26};
-	bool (*IsReleased)(WidgetIDs, FVector2D*, int);
+	bool (*IsReleased)(WidgetIDs WidgetID, FVector2D* pVecOut, int nFrameCount);
 	inline void _Init(){
 		SET_TO(IsReleased, SYM("_ZN8ViceCity15CTouchInterface10IsReleasedENS0_9WidgetIDsEP9FVector2Di"));
 	}

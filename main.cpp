@@ -2,7 +2,7 @@
 #include "mod/logger.h"
 #include "mod/config.h"
 
-MYMOD(com.starlit.xconfig, XConfig, Beta 8, BengbuGuards)
+MYMOD(com.starlit.xconfig, XConfig, Beta 9, BengbuGuards)
 static Config cfgLocal("XConfig");
 
 Config* cfg = &cfgLocal;
@@ -26,7 +26,13 @@ extern "C" void OnModLoad()
 	
 	pUE4 = aml->GetLib("libUE4.so");
 	hUE4 = aml->GetLibHandle("libUE4.so");
+	
+	if(!pUE4){
+		logger->Info("Can't find libUE4, unloading...");
+		return;
+	}
 	cfg->Bind("Author", "", "About")->SetString("BengbuGuards, XMDS");
+	cfg->Bind("Version", "", "About")->SetString("Beta 9");
 	const char* szGame = aml->GetCurrentGame();
 	logger->Info("Game %s", szGame);
 	#define _stricmp strcasecmp
@@ -46,6 +52,6 @@ extern "C" void OnModLoad()
 	if(nGame == III)
 		GTA3::Init();
 
-	if(pUE4) logger->Info("XConfig mod is loaded!");
+	logger->Info("XConfig mod is loaded!");
 	
 }
