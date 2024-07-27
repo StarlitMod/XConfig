@@ -1,14 +1,3 @@
-<style>
-	.uknowtoomuch {
-		background-color: #1f1f1f !important;
-		color: #1f1f1f !important;
-		border-radius: 5px !important
-	}
-	.uknowtoomuch:hover,.uknowtoomuch:hover a,.uknowtoomuch.active {
-		color: #ccc !important
-	}
-</style>
-
 # XConfig
 一个对GTA三部曲移动版进行了改进与修复的插件。
 A plugin that brings improvements and fixes to GTA Trilogy Mobile.
@@ -27,10 +16,10 @@ A plugin that brings improvements and fixes to GTA Trilogy Mobile.
 
 - `ShowFPS`： 功能开启。
 - `MaxFPSToShowColor`： 显示为绿色的最小FPS值。
-- `UseModernFonts`： **[SA]** `1`使用菜单样式的扁字体（Bank Gothic），`0`使用字幕样式的等线字体。**[VC]** `1`使用细长的等线字体，`0`使用飘逸字体<span class="uknowtoomuch">（不知道啥名）</span>。**[III]** `1`使用字幕样式的等线，`0`使用标题样式的粗字体（Pricedown）。
+- `UseModernFonts`： **[SA]** `1`使用菜单样式的扁字体（Bank Gothic），`0`使用字幕样式的等线字体。**[VC]** `1`使用细长的等线字体，`0`使用飘逸字体（不知道啥名）。**[III]** `1`使用字幕样式的等线，`0`使用标题样式的粗字体（Pricedown）。
 
 #### 新增的作弊码
-`RestoreDebuggingCheats`：**[SA][VC]** 恢复十周年版被隐藏起来的作弊码。不区分大小写。无需在末尾输入中文说明。<span class="uknowtoomuch">输了可能还会出错</span>
+`RestoreDebuggingCheats`：**[SA][VC]** 恢复十周年版被隐藏起来的作弊码。不区分大小写。无需在末尾输入中文说明。
 
 **仅[SA]** `IncreaseTimesCheated`：激活这些作弊码是否增加统计信息中的作弊次数。
 
@@ -44,7 +33,7 @@ A plugin that brings improvements and fixes to GTA Trilogy Mobile.
 - TrueGod：**[SA]** 无敌，玩家不会受到任何伤害，除了游戏机制直接使玩家死亡的情况（如没开降落伞着地），车辆也是无敌，但爆炸仍会杀死玩家。**[VC]** 免疫除溺水的伤害外的所有伤害。车辆也是无敌，但爆炸仍会杀死玩家。
 - NoPity：**[SA]** 跳过（直接完成）当前任务，极少数任务不可跳过。
 - **[SA|特色]** 输入模型ID，紧跟字母S（不区分大小写）可刷出对应车辆，除火车外。
-- **[SA|特色]** 输入模型ID，紧跟字母T（不区分大小写）可将主角皮肤改为对应NPC皮肤（CJ是0）。bug：由于最终版的引擎原因，变换后武器模型会悬浮，喷气背包位置偏移，且玩家不能下蹲；变回默认皮肤（输入`0T`）后CJ的全部服装等装饰消失。<span class="uknowtoomuch">大裤衩CJ</span>
+- **[SA|特色]** 输入模型ID，紧跟字母T（不区分大小写）可将主角皮肤改为对应NPC皮肤（CJ是0）。bug：由于最终版的引擎原因，变换后武器模型会悬浮，喷气背包位置偏移，且玩家不能下蹲；变回默认皮肤（输入`0T`）后CJ的全部服装等装饰消失。
 
 #### 其他
 - **[SA][VC][III]** `FixMissingTextKey`：修复装了某些.pak模组包（如一些画质包）后，游戏的一些文字变为一长串“XXX missing”（文本缺失）。
@@ -55,7 +44,7 @@ A plugin that brings improvements and fixes to GTA Trilogy Mobile.
 - **[SA]** `ClimbOnAnyVehicle`：让车辆可以像建筑物一样能够被攀爬上。
 - **[SA]** `ColouredZoneNames`： 屏幕右下角显示地名时，还会显示帮派地盘的颜色。这是在原版游戏损坏的功能，原版只会在一个地盘由多个帮派控制时才显示（官方把与/或条件弄混）。颜色计算方式类似于十周年版的JPatch（忽视帮派密度）而不是原版的SilentPatch（二次方变换）。
 - **[SA]** `FixMissingShootBtnForPredator`：修复不显示驾驶捕食者（Predator）这艘船时的固定机炮开火按钮（最终版III和VC的这艘船都有开火按钮，SA因为bug没有）
-- **[SA]** `PlaneExplodeDisappearFix`：修复玩家驾驶的飞机在爆炸后消失，而不留残骸的bug。<span class="uknowtoomuch">R星预言可币？</span>
+- **[SA]** `PlaneExplodeDisappearFix`：修复玩家驾驶的飞机在爆炸后消失，而不留残骸的bug。
 - **[SA]** `SprintOnAnySurface`：在绝大多数室内空间可以冲刺。即原版和十周年的插件“Sprint Everywhere”。
 - **[VC|部分可用]** `AbleToSkipTelephoneCall`：接听电话时可以按电话按钮挂断电话。功能bug：一旦挂电话之后，后续来电接听将会自动挂断
 - **[VC|未测试]** `AllowAutoAimingOnMG`：启用火神机枪的自动瞄准功能。功能bug：不可用
