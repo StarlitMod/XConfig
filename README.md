@@ -15,6 +15,8 @@ A plugin that brings improvements and fixes to GTA Trilogy Mobile.
 | **1.83** | × | × | × | × | — | — |
 | **1.86** | — | — | — | — | × | × |
 
+注：当SA手动关闭`ClimbOnAnyVehicle`和`ColouredZoneNames`两个选项后，则能在1.86版有限运行。
+
 ## 功能
 
 ### 自动保存
