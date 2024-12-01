@@ -230,7 +230,7 @@ DECL_HOOKv(AGTAHUD__UpdatePerfHUD, bool showFPS, const FVector& coord, const FSt
 		CFont::SetDropShadowPosition(4);
 		CFont::SetFontStyle(bModernFonts ? CFont::FONT_STANDARD : CFont::FONT_BANK);
 		CFont::SetJustifyOn();
-		CFont::SetScale(2.3*0.54f, 2.3f);
+		CFont::SetScale(2.3*0.54f, 2.3f);  
 		CFont::SetWrapx(1000.f);
 		CFont::PrintString(fPxX * 32, fPxY * 8, szW, nullptr);
 		delete[] szW;
@@ -298,8 +298,15 @@ void Init(){
 	bModernFonts = cfg->GetBool("UseModernFonts", true, "Debugging");
 	fMaxFPSToCalcColor = cfg->GetFloat("MaxFPSToShowColor", 30.f, "Debugging");
 
-	if(cfg->GetBool("AllowAutoAimingOnMG", true, "Gameplay"))
+	if(cfg->GetBool("AllowAutoAimingOnMG", true, "Gameplay")){
 		aml->PlaceNOP(SYM("_ZN8ViceCity10CPlayerPed22FindWeaponLockOnTargetEi")+0xD8, 2);
+		uintptr_t ProcessPlayerWeapon_Internal = SYM("_ZN8ViceCity10CPlayerPed28ProcessPlayerWeapon_InternalEv");
+		aml->PlaceNOP(ProcessPlayerWeapon_Internal+0xA28, 2);
+		aml->PlaceNOP(ProcessPlayerWeapon_Internal+0xE08, 2);
+		aml->PlaceNOP(ProcessPlayerWeapon_Internal+0xF98, 2); // TODO: NOP
+		aml->PlaceNOP(ProcessPlayerWeapon_Internal+0x1658, 2);
+		aml->PlaceNOP(ProcessPlayerWeapon_Internal+0x1C04, 2);
+	}
 
 	if((bSkipPhoneCall = cfg->GetBool("AbleToSkipTelephoneCall", true, "Gameplay")))
 		HOOKSYM(CRunningScript__ProcessCommands900To999, hUE4, "_ZN8ViceCity14CRunningScript23ProcessCommands900To999Ei");

@@ -110,11 +110,19 @@ struct CVector{
 struct CVector2D{
 	float x,y;
 };
+
+// UE的几个常用定义
 struct FVector{
 	float X, Y, Z;
 };
 struct FVector2D{
 	float X, Y;
+};
+struct FVector4{
+	float X,Y,Z,W;
+};
+struct FLinearColor{
+	float R,G,B,A;
 };
 
 void CalcColorBadToGood(float value, float max, CRGBA& out){

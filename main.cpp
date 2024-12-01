@@ -2,7 +2,7 @@
 #include "mod/logger.h"
 #include "mod/config.h"
 
-MYMOD(com.starlit.xconfig, XConfig, Beta 9, BengbuGuards)
+MYMOD(com.starlit.xconfig, XConfig, 0.10, BengbuGuards)
 static Config cfgLocal("XConfig");
 
 Config* cfg = &cfgLocal;
@@ -32,7 +32,7 @@ extern "C" void OnModLoad()
 		return;
 	}
 	cfg->Bind("Author", "", "About")->SetString("BengbuGuards, XMDS");
-	cfg->Bind("Version", "", "About")->SetString("Beta 9");
+	cfg->Bind("Version", "", "About")->SetString("Beta 10");
 	const char* szGame = aml->GetCurrentGame();
 	logger->Info("Game %s", szGame);
 	#define _stricmp strcasecmp

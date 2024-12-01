@@ -57,12 +57,12 @@ struct _CPed{
 	private: byte gap3C[0x6A4];
 	public: AssocGroupId m_nAnimGroup;
 }; VALIDATE_OFFSET(_CPed, m_nAnimGroup, 0x6E0);
-/*namespace CClothes{
+namespace CClothes{
 	void (*RebuildPlayer)(_CPed* player, bool bIgnoreFatAndMuscle);
 	void _Init(){
 		SET_TO(RebuildPlayer, SYM("_ZN8CClothes13RebuildPlayerEP10CPlayerPedb"));
 	}
-}*/
+}
 struct CEntryExit {
 	char    m_szName[8];
 	CRect   m_recEntrance;
@@ -452,10 +452,11 @@ DECL_HOOKv(CCheat__AddToCheatString, char LastPressedKey, bool p2){
 		logger->Info("CheatString %s", buffer);
 		if(!bRestoreDebuggingCheats) return;
 		static int nID;
+		static bool bInputtedNum = false;
 		if(isdigit(LastPressedKey))
-			nID = 10 * nID + LastPressedKey - '0';
+			nID = 10 * nID + LastPressedKey - '0', bInputtedNum = true;
 		else{
-			if(toupper(LastPressedKey) == 'S'){
+			if(toupper(LastPressedKey) == 'S' && bInputtedNum){
 				auto type = CModelInfo::IsVehicleModelType(nID);
 				if(type != VEHICLE_TYPE_NONE && type != VEHICLE_TYPE_TRAIN){ //VehicleCheat()没有实现刷火车，强制刷出会崩
 					logger->Info("Spawn %d", nID);
@@ -464,7 +465,7 @@ DECL_HOOKv(CCheat__AddToCheatString, char LastPressedKey, bool p2){
 					if(CCheat::VehicleCheat(nID, false, 1.0))
 						RespondCheatActivited(true);
 				}
-			}else if(toupper(LastPressedKey) == 'T'){
+			}else if(toupper(LastPressedKey) == 'T' && bInputtedNum){
 				// static float muscle = 200.f;
 				_CPed* ped = FindPlayerPed(-1);
 				if(ped){ //下面的部分基本算是几个opcode的重新实现（参考了KaizoM的脚本https://www.mixmods.com.br/2022/01/simple-skin-selector-ped-creator/）
@@ -481,12 +482,15 @@ DECL_HOOKv(CCheat__AddToCheatString, char LastPressedKey, bool p2){
 						ped->m_nAnimGroup = ang;
 						CStreaming::SetModelIsDeletable(nID);
 						if(nID) (*Pads)[0].bDisablePlayerDuck = true; //DE的bug导致改变模型后下蹲崩溃，暂时解决办法是禁止蹲下
-						else (*Pads)[0].bDisablePlayerDuck = false;   //万一有脚本把这个值改回来了（某些任务）就坏事了
+						else {										  //万一有脚本把这个值改回来了（某些任务）就坏事了
+							(*Pads)[0].bDisablePlayerDuck = false;
+							CClothes::RebuildPlayer(ped, false);
+						}
 						RespondCheatActivited(true);
 					}
 				}
 			}
-			nID = 0;
+			nID = 0, bInputtedNum = false;
 		}
 		/*if(CCheat::_TestCheat("teleport", 8)){
 			CPed* ped = FindPlayerPed(-1);
@@ -670,7 +674,7 @@ void Init(){
 	UGTASingleton::_Init();
 	CAchievement::_Init();
 	CCheat::_Init();
-	//CClothes::_Init();
+	CClothes::_Init();
 	CEntryExitManager::_Init();
 	CFont::_Init();
 	CGame::_Init();

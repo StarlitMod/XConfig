@@ -1,0 +1,5 @@
+.vscode/
+libs/
+mod/
+obj/
+ndkpath.txt
