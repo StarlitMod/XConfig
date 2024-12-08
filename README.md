@@ -11,11 +11,11 @@ A plugin that brings improvements and fixes to GTA Trilogy Mobile.
 | **游戏** | **III** |  | **VC** |  | **SA** |  |
 |---|---|---|---|---|---|---|
 | **版本** | NF | R* | NF | R* | NF | R* |
-| **1.72** | √ | √* | √ | √* | √ | √* |
-| **1.83** | × | × | × | × | — | — |
-| **1.86** | — | — | — | — | × | × |
+| **1.72** | √ | √ | √ | √ | √ | √ |
+| **1.83** | × | √* | × | √* | — | — |
+| **1.86** | — | — | — | — | × | √* |
 
-注：当SA手动关闭`ClimbOnAnyVehicle`和`ColouredZoneNames`两个选项后，则能在1.86版有限运行。
+*注：当SA手动关闭`ClimbOnAnyVehicle`、`ColouredZoneNames`和`PlaneExplodeDisappearFix`三个选项后，则能在1.86版有限运行（其他选项未经测试）。VC、III可以运行，但是FPS显示恒为`inf`（∞）。
 
 ## 功能
 
