@@ -10,10 +10,17 @@ enum eWeaponType : int32{
 namespace AGTAHud{
 	uint32 (*m_aLastUpdatedFramesCount)[40];
 	uint32* m_nLastUpdatedIndex;
-	void _Init(){
-		uintptr_t GGrassMovement = SYM("GGrassMovement");
-		SET_TO(m_aLastUpdatedFramesCount, GGrassMovement + 80);
-		SET_TO(m_nLastUpdatedIndex, uintptr_t(m_aLastUpdatedFramesCount) + sizeof(uint32[40]));
+	bool _Init(){
+		if(nVer == V1_72){
+			uintptr_t GGrassMovement = SYM("GGrassMovement");
+			SET_TO(m_aLastUpdatedFramesCount, GGrassMovement + 80);
+			SET_TO(m_nLastUpdatedIndex, uintptr_t(m_aLastUpdatedFramesCount) + sizeof(uint32[40]));
+		} else if(nVer == V1_8X){
+			uintptr_t AGTALightBase__LastTime = SYM("_ZN13AGTALightBase8LastTimeE");
+			SET_TO(m_aLastUpdatedFramesCount, AGTALightBase__LastTime - 200);
+			SET_TO(m_nLastUpdatedIndex, uintptr_t(m_aLastUpdatedFramesCount) + sizeof(uint32[40]));
+		} else return false;
+		return true;
 	}
 }
 namespace CFont{
@@ -78,7 +85,7 @@ namespace UGameterSettings{
 	}
 }
 namespace UGTASingleton{
-	_UGameterSettings* (*GetSettings)(bool, bool, bool);
+	_UGameterSettings* (*GetSettings)(bool ForceRefresh, bool bForceUpdateAudio, bool forceNoChanges);
 	void _Init(){
 		SET_TO(GetSettings, SYM("_ZN13UGTASingleton11GetSettingsEbbb"));
 	}
@@ -177,7 +184,7 @@ void Init(){
 	GTA3::_Init();
 	UGameterSettings::_Init();
 	UGTASingleton::_Init();
-	GTA3::AGTAHud::_Init();
+	bool bFPSShowAvailable = GTA3::AGTAHud::_Init();
 	GTA3::CFont::_Init();
 	GTA3::CGangs::_Init();
 	GTA3::CMenuManager::_Init();
@@ -189,10 +196,12 @@ void Init(){
 	if(entry->GetInt() < 10) entry->SetInt(10);
 	nSaveIntervalTime = entry->GetInt() * 1000;
 
-	if(cfg->GetBool("ShowFPS", true, "Debugging"))
-		HOOKSYM(AGTAHUD__UpdatePerfHUD, hUE4, "_ZN7AGTAHUD13UpdatePerfHUDEbRK7FVectorRK7FString");
-	bModernFonts = cfg->GetBool("UseModernFonts", true, "Debugging");
-	fMaxFPSToCalcColor = cfg->GetFloat("MaxFPSToShowColor", 30.f, "Debugging");
+	if (bFPSShowAvailable){ //内存地址每个版本都不同
+		if(cfg->GetBool("ShowFPS", true, "Debugging"))
+			HOOKSYM(AGTAHUD__UpdatePerfHUD, hUE4, "_ZN7AGTAHUD13UpdatePerfHUDEbRK7FVectorRK7FString");
+		bModernFonts = cfg->GetBool("UseModernFonts", true, "Debugging");
+		fMaxFPSToCalcColor = cfg->GetFloat("MaxFPSToShowColor", 30.f, "Debugging");
+	}
 	
 	bFixMissingTextKey = cfg->GetBool("FixMissingTextKey", true, "Visual");
 

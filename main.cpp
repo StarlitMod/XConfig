@@ -2,7 +2,7 @@
 #include "mod/logger.h"
 #include "mod/config.h"
 
-MYMOD(com.starlit.xconfig, XConfig, 0.10, BengbuGuards)
+MYMOD(com.starlit.xconfig, XConfig, 0.12, BengbuGuards)
 static Config cfgLocal("XConfig");
 
 Config* cfg = &cfgLocal;
@@ -12,13 +12,19 @@ void* hUE4;
 #include "types.inl"
 enum {III=1,VC,SA}nGame;
 enum {Netflex=1,Rockstar}nGameType;
+enum VERSION{V1_72=1, V1_8X, UNKNOWN}nVer;
 
 int ret0(int a, ...) { return 0; } // Generic
 
 #include "III.inl"
 #include "VC.inl"
 #include "SA.inl"
-
+namespace UGameterface{
+	FString (*GetVersionString)();
+	inline void _Init(){
+		SET_TO(GetVersionString, SYM("_ZN12UGameterface16GetVersionStringEv"));
+	}
+}
 
 extern "C" void OnModLoad()
 {
@@ -32,7 +38,7 @@ extern "C" void OnModLoad()
 		return;
 	}
 	cfg->Bind("Author", "", "About")->SetString("BengbuGuards, XMDS");
-	cfg->Bind("Version", "", "About")->SetString("Beta 10");
+	cfg->Bind("Version", "", "About")->SetString("Beta-12");
 	const char* szGame = aml->GetCurrentGame();
 	logger->Info("Game %s", szGame);
 	#define _stricmp strcasecmp
@@ -42,6 +48,14 @@ extern "C" void OnModLoad()
 	else if(!_stricmp(szGame, "com.rockstargames.gtavc.de"))nGame=VC, nGameType=Rockstar;
 	else if(!_stricmp(szGame, "com.netflix.NGP.GTAIIIDefinitiveEdition"))nGame=III, nGameType=Netflex;
 	else if(!_stricmp(szGame, "com.rockstargames.gta3.de"))nGame=III, nGameType=Rockstar;
+	/*UGameterface::_Init();
+	// 判断游戏版本，某些硬编码补丁只适用于1.72，否则闪退 TODO: 使用Pattern
+	FString sVer = UGameterface::GetVersionString();
+	char secChar = *((char*)sVer + 4);
+	if(secChar == '7')nVer = V1_72;
+	else if(secChar == '8')nVer = V1_8X;
+	else nVer = UNKNOWN;*/
+	nVer = V1_8X;
 
 	if(nGame == SA)
 		GTASA::Init();

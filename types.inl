@@ -69,6 +69,12 @@ void AsciiToGxtChar(const char* src, char16_t* dst){
 	*dst=0;
 }
 
+void GxtCharToAscii(const char16_t* src, char* dst){
+	for(;*src;*dst++=*src++)
+		;
+	*dst=0;
+}
+
 template <typename... Args> inline void Call(uintptr_t address, Args... args) {
     reinterpret_cast<void(*)(Args...)>(address)(args...);
 }

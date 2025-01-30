@@ -2,10 +2,17 @@ namespace ViceCity{
 namespace AGTAHud{
 	uint32 (*m_aLastUpdatedFramesCount)[40];
 	uint32* m_nLastUpdatedIndex;
-	void _Init(){
-		uintptr_t GGrassMovement = SYM("GGrassMovement");
-		SET_TO(m_aLastUpdatedFramesCount, GGrassMovement + 80);
-		SET_TO(m_nLastUpdatedIndex, uintptr_t(m_aLastUpdatedFramesCount) + sizeof(uint32[40]));
+	bool _Init(){
+		if(nVer == V1_72){
+			uintptr_t GGrassMovement = SYM("GGrassMovement");
+			SET_TO(m_aLastUpdatedFramesCount, GGrassMovement + 80);
+			SET_TO(m_nLastUpdatedIndex, uintptr_t(m_aLastUpdatedFramesCount) + sizeof(uint32[40]));
+		} else if(nVer == V1_8X){
+			uintptr_t AGTALightBase__LastTime = SYM("_ZN13AGTALightBase8LastTimeE");
+			SET_TO(m_aLastUpdatedFramesCount, AGTALightBase__LastTime - 200);
+			SET_TO(m_nLastUpdatedIndex, uintptr_t(m_aLastUpdatedFramesCount) + sizeof(uint32[40]));
+		} else return false;
+		return true;
 	}
 }
 namespace CFont{
@@ -137,7 +144,7 @@ namespace UGameterSettings{
 	}
 }
 namespace UGTASingleton{
-	_UGameterSettings* (*GetSettings)(bool, bool, bool);
+	_UGameterSettings* (*GetSettings)(bool ForceRefresh, bool bForceUpdateAudio, bool forceNoChanges);
 	void _Init(){
 		SET_TO(GetSettings, SYM("_ZN13UGTASingleton11GetSettingsEbbb"));
 	}
@@ -187,9 +194,9 @@ DECL_HOOKv(CGame__Process){
 	if(bSkipPhoneCall){
 		CPed* pPed = ViceCity::FindPlayerPed();
 		if(pPed && pPed->m_nPedState == PED_ANSWER_MOBILE){
-			if(!bSkipJustDown && CTouchInterface::IsReleased(CTouchInterface::WIDGET_PHONE, nullptr, 2))
+			if(!bSkipJustDown && CTouchInterface::IsReleased(CTouchInterface::WIDGET_PHONE, nullptr, 2)) //TODO: 按过一次就永远返回true了？？
 				bSkipJustDown = true;
-		} else bSkipJustDown = false; //TODO：多次来电，后边一样当跳过算了？状态怎么不保存
+		} else bSkipJustDown = false;
 	}
 	if(bFixMissingTextKey){
 		static bool fixed;
@@ -271,7 +278,7 @@ void Init(){
 	ViceCity::_Init();
 	UGameterSettings::_Init();
 	UGTASingleton::_Init();
-	ViceCity::AGTAHud::_Init();
+	bool bFPSShowAvailable = ViceCity::AGTAHud::_Init();
 	ViceCity::CFont::_Init();
 	ViceCity::CGame::_Init();
 	ViceCity::CGarage::_Init();
@@ -293,10 +300,12 @@ void Init(){
 	nSaveIntervalTime = entry->GetInt() * 1000;
 	bSaveInInteriors = cfg->GetBool("SaveInInteriors", true, "AutoSave");
 
-	if(cfg->GetBool("ShowFPS", true, "Debugging"))
-		HOOKSYM(AGTAHUD__UpdatePerfHUD, hUE4, "_ZN7AGTAHUD13UpdatePerfHUDEbRK7FVectorRK7FString");
-	bModernFonts = cfg->GetBool("UseModernFonts", true, "Debugging");
-	fMaxFPSToCalcColor = cfg->GetFloat("MaxFPSToShowColor", 30.f, "Debugging");
+	if (bFPSShowAvailable){ //内存地址每个版本都不同
+		if(cfg->GetBool("ShowFPS", true, "Debugging"))
+			HOOKSYM(AGTAHUD__UpdatePerfHUD, hUE4, "_ZN7AGTAHUD13UpdatePerfHUDEbRK7FVectorRK7FString");
+		bModernFonts = cfg->GetBool("UseModernFonts", true, "Debugging");
+		fMaxFPSToCalcColor = cfg->GetFloat("MaxFPSToShowColor", 30.f, "Debugging");
+	}
 
 	if(cfg->GetBool("AllowAutoAimingOnMG", true, "Gameplay")){
 		aml->PlaceNOP(SYM("_ZN8ViceCity10CPlayerPed22FindWeaponLockOnTargetEi")+0xD8, 2);

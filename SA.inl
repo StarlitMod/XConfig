@@ -1,5 +1,7 @@
 namespace GTASA{
 enum eModelID : uint16 {MODEL_PREDATOR = 430};
+enum eDoors : uint32 {BONNET, BOOT, FRONT_LEFT_DOOR, FRONT_RIGHT_DOOR, REAR_LEFT_DOOR, REAR_RIGHT_DOOR, MAX_DOORS};
+eDoors operator++(eDoors& i, int){i = (eDoors)((uint32)i + 1); return i;}
 struct CVehicle{
 	private: byte gap0[0x3A];
 	public: eModelID m_nModelIndex;
@@ -8,6 +10,18 @@ namespace CAchievement{
 	bool *messagedAboutCheating;
 	inline void _Init(){
 		SET_TO(messagedAboutCheating, SYM("_ZN12CAchievement21messagedAboutCheatingE"));
+	}
+}
+namespace CAutomobile{
+	void (*CloseAllDoors)(CVehicle* self);
+	bool (*IsDoorFullyOpen)(const CVehicle *self, eDoors DoorID);
+	bool (*IsDoorMissing)(const CVehicle *self, eDoors DoorID);
+	void (*OpenDoor)(CVehicle *self, void *pPed, int index, eDoors DoorID, float timeRatio, bool bPlaySoundSample);
+	void _Init(){
+		SET_TO(CloseAllDoors, SYM("_ZN11CAutomobile13CloseAllDoorsEv"));
+		SET_TO(IsDoorFullyOpen, SYM("_ZNK11CAutomobile15IsDoorFullyOpenE6eDoors"));
+		SET_TO(IsDoorMissing, SYM("_ZNK11CAutomobile13IsDoorMissingE6eDoors"));
+		SET_TO(OpenDoor, SYM("_ZN11CAutomobile8OpenDoorEP4CPedi6eDoorsfb"));
 	}
 }
 namespace CCheat{
@@ -59,8 +73,14 @@ struct _CPed{
 }; VALIDATE_OFFSET(_CPed, m_nAnimGroup, 0x6E0);
 namespace CClothes{
 	void (*RebuildPlayer)(_CPed* player, bool bIgnoreFatAndMuscle);
-	void _Init(){
+	inline void _Init(){
 		SET_TO(RebuildPlayer, SYM("_ZN8CClothes13RebuildPlayerEP10CPlayerPedb"));
+	}
+}
+namespace CDamageManager{
+	int (*GetCarNodeIndexFromDoor)(eDoors DoorIndex);
+	inline void _Init(){
+		SET_TO(GetCarNodeIndexFromDoor, SYM("_ZN14CDamageManager23GetCarNodeIndexFromDoorE6eDoors"));
 	}
 }
 struct CEntryExit {
@@ -328,8 +348,10 @@ struct tRadarTrace{
 }; VALIDATE_SIZE(tRadarTrace, 0x30);
 namespace CRadar{
 	tRadarTrace (*ms_RadarTrace)[250];
+	int (*GetCustomWaypointArrayIndex)(void* self);
 	inline void _Init(){
 		SET_TO(ms_RadarTrace, SYM("_ZN6CRadar13ms_RadarTraceE"));
+		SET_TO(GetCustomWaypointArrayIndex, SYM("_ZN6CRadar27GetCustomWaypointArrayIndexEv"));
 	}
 }
 namespace CRunningScript{
@@ -390,13 +412,13 @@ namespace CTimer{
 struct _UGameterSettings;
 namespace UGameterSettings{
 	void (*OnLanguageSetEv)(_UGameterSettings* self);
-	void _Init(){
+	inline void _Init(){
 		SET_TO(OnLanguageSetEv, SYM("_ZN16UGameterSettings13OnLanguageSetEv"));
 	}
 }
 namespace UGTASingleton{
-	_UGameterSettings* (*GetSettings)(bool, bool, bool);
-	void _Init(){
+	_UGameterSettings* (*GetSettings)(bool ForceRefresh, bool bForceUpdateAudio, bool forceNoChanges);
+	inline void _Init(){
 		SET_TO(GetSettings, SYM("_ZN13UGTASingleton11GetSettingsEbbb"));
 	}
 }
@@ -418,6 +440,18 @@ namespace {
 		SET_TO(OS_ScreenGetWidth, SYM("_Z17OS_ScreenGetWidthv"));
 		SET_TO(SaveGameForPause, SYM("_Z16SaveGameForPause10eSaveTypesPc"));
 	}
+}
+bool OpenVehDoor(CVehicle* pVeh, eDoors DoorID, float timeRatio, bool bPlaySoundSample){
+	eVehicleType type = CModelInfo::IsVehicleModelType(pVeh->m_nModelIndex);
+	if(type == VEHICLE_TYPE_CAR || type == VEHICLE_TYPE_HELI || type == VEHICLE_TYPE_PLANE || type == VEHICLE_TYPE_MONSTERTRUCK){
+		int nodeIdx = CDamageManager::GetCarNodeIndexFromDoor(DoorID);
+		if(!CAutomobile::IsDoorMissing(pVeh, DoorID)
+			&& *(int*)((uintptr_t)pVeh + 2384 + 4 * nodeIdx) != -1){
+				CAutomobile::OpenDoor(pVeh, nullptr, nodeIdx, DoorID, timeRatio, true);
+				return true;
+			}
+	}
+	return false;
 }
 
 
@@ -492,15 +526,42 @@ DECL_HOOKv(CCheat__AddToCheatString, char LastPressedKey, bool p2){
 			}
 			nID = 0, bInputtedNum = false;
 		}
-		/*if(CCheat::_TestCheat("teleport", 8)){
-			CPed* ped = FindPlayerPed(-1);
+		if(CCheat::_TestCheat("teleport", 8)){
+			_CPed* ped = FindPlayerPed(-1);
 			if(ped){
-				CVector coord = (*CRadar::ms_RadarTrace)[LOWORD(gMobileMenu->m_nTargetBlipIndex)].m_vPosition;
-				logger->Info("Target %f %f", coord.x, coord.y);
-				//CColStore__RequestCollision(coord, 0);
-				CRunningScript::SetCharCoordinates(nullptr, ped, coord.x, coord.y, -100.f, true, true);
+				int index = CRadar::GetCustomWaypointArrayIndex(nullptr); //实际上游戏中存在CRadar::GetWaypointBlipPos的函数，但是返回值不能用
+				if(index != -1){ //这里确保目标有效
+					CVector coord = (*CRadar::ms_RadarTrace)[index].m_vPosition;
+					logger->Info("Target %f %f", coord.x, coord.y);
+					//CColStore__RequestCollision(coord, 0);
+					CRunningScript::SetCharCoordinates(nullptr, ped, coord.x, coord.y, -100.f, true, true); //TODO: 提前载入该区域
+					RespondCheatActivited(true);
+				}
 			}
-		}*/
+		}
+		if(CCheat::_TestCheat("slamdoors", 9)){
+			CVehicle* pVeh = FindPlayerVehicle(-1, false);
+			if(pVeh){
+				bool toOpen = false, bSuccessful = false;
+				for(eDoors i = BONNET; i < MAX_DOORS; i++){
+					if(!CAutomobile::IsDoorMissing(pVeh, i) && !CAutomobile::IsDoorFullyOpen(pVeh, i)){
+						toOpen = true;
+						break;
+					}
+				}
+				if(toOpen){
+					for(eDoors i = BONNET; i < MAX_DOORS; i++){
+						if(OpenVehDoor(pVeh, i, 1.0, true))bSuccessful = true;
+					}
+					if(bSuccessful)RespondCheatActivited(true);
+				} else {
+					CAutomobile::CloseAllDoors(pVeh);
+					OpenVehDoor(pVeh, BONNET, 0.0, true);
+					OpenVehDoor(pVeh, BOOT, 0.0, true);
+					RespondCheatActivited(false);
+				}
+			}
+		}
 		if(CCheat::_TestCheat("secretspyset", 12)){
 			CCheat::WeaponCheat4();
 			RespondCheatActivited(true);
@@ -673,8 +734,10 @@ void Init(){
 	UGameterSettings::_Init();
 	UGTASingleton::_Init();
 	CAchievement::_Init();
+	CAutomobile::_Init();
 	CCheat::_Init();
 	CClothes::_Init();
+	CDamageManager::_Init();
 	CEntryExitManager::_Init();
 	CFont::_Init();
 	CGame::_Init();
@@ -714,7 +777,7 @@ void Init(){
 	if(cfg->GetBool("SprintOnAnySurface", true, "Gameplay"))
 		aml->Redirect(SYM("_ZN14SurfaceInfos_c12CantSprintOnEj"), uintptr_t(ret0));
 
-	if(cfg->GetBool("PlaneExplodeDisappearFix", true, "Gameplay")){
+	if(nVer == V1_72 && cfg->GetBool("PlaneExplodeDisappearFix", true, "Gameplay")){
 		uintptr_t pBaseFunc = SYM("_ZN6CPlane9BlowUpCarEP7CEntityh");
 		aml->Write32(pBaseFunc + 0xFC, 0x14000036);
 		aml->PlaceNOP(pBaseFunc + 0x1E8);
@@ -731,15 +794,15 @@ void Init(){
 	if(cfg->GetBool("AllowAutoAimingOnRFMG", true, "Gameplay"))
 		aml->Write32(SYM("_ZN10CPlayerPed22FindWeaponLockOnTargetEi")+0xD8, 0xD2C00409);
 
-	if(cfg->GetBool("ClimbOnAnyVehicle", true, "Gameplay"))
+	if(nVer == V1_72 && cfg->GetBool("ClimbOnAnyVehicle", true, "Gameplay"))
 		aml->Write32(SYM("_ZN16CTaskSimpleClimb20ScanToGrabSectorListER8CPtrListP4CPedR7CVectorRfRhbbb")+0x4A0, 0x17FFFF81);
 
-	if((bFixMissingShootBtnForPredator = cfg->GetBool("FixMissingShootBtnForPredator", true, "Gameplay")))
+	if(nVer == V1_72 && (bFixMissingShootBtnForPredator = cfg->GetBool("FixMissingShootBtnForPredator", true, "Gameplay")))
 		aml->Write32(SYM("_ZN5CBoat14ProcessControlEv")+0x390, 0x52800021);
 
 	// bFixBoatMovingHi = cfg->GetBool("BoatRotatingRadarFix", false, "Visual");
 
-	if((bColorZoneName = cfg->GetBool("ColouredZoneNames", true, "Visual")))
+	if(nVer == V1_72 && (bColorZoneName = cfg->GetBool("ColouredZoneNames", true, "Visual")))
 		aml->Write(SYM("_ZN4CHud12DrawAreaNameEv")+0x3E4, "\x6A\x31\x40\x39" "\x6B\x35\x40\x39" "\x69\x00\x00\xB5" "\x4A\x00\x00\xB5" "\x8B\x00\x00\xB4", 20);
 	
 
