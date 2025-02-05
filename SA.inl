@@ -1,5 +1,5 @@
 namespace GTASA{
-enum eModelID : uint16 {MODEL_PREDATOR = 430};
+enum eModelID : uint16 {MODEL_PREDATOR = 430, MODEL_FIRELA = 544};
 enum eDoors : uint32 {BONNET, BOOT, FRONT_LEFT_DOOR, FRONT_RIGHT_DOOR, REAR_LEFT_DOOR, REAR_RIGHT_DOOR, MAX_DOORS};
 eDoors operator++(eDoors& i, int){i = (eDoors)((uint32)i + 1); return i;}
 struct CVehicle{
@@ -96,16 +96,16 @@ struct CEntryExit {
 			uint16 bUnknownPairing : 1;      // 0x2
 			uint16 bCreateLinkedPair : 1;    // 0x4
 			uint16 bRewardInterior : 1;      // 0x8
-			uint16 bUsedRewardEntrance : 1;  // 0x10
+			uint16 bUsedRewardEntrance : 1;  // 0X8
 			uint16 bCarsAndAircraft : 1;     // 0x20
 			uint16 bBikesAndMotorcycles : 1; // 0x40
 			uint16 bDisableOnFoot : 1;       // 0x80
 
-			uint16 bAcceptNpcGroup : 1;      // 0x100
+			uint16 bAcceptNpcGroup : 1;      // 0X80
 			uint16 bFoodDateFlag : 1;        // 0x200
 			uint16 bUnknownBurglary : 1;     // 0x400
 			uint16 bDisableExit : 1;         // 0x800
-			uint16 bBurglaryAccess : 1;      // 0x1000
+			uint16 bBurglaryAccess : 1;      // 0X800
 			uint16 bEnteredWithoutExit : 1;  // 0x2000
 			uint16 bEnableAccess : 1;        // 0x4000
 			uint16 bDeleteEnex : 1;          // 0x8000
@@ -240,19 +240,18 @@ namespace CModelInfo{
 	}
 }
 struct _CPad{
-	private: byte gap0[0x15A];
+	private: byte gap0[0x30];
+	public:  int16 DisablePlayerControls;
+	         struct {int16 LeftStickX, LeftStickY;} NewState;
+	private: byte gap36[0x124];
 	public:  bool bDisablePlayerDuck;
 	private: byte gap15B[0x25];
-}(*Pads)[2]; VALIDATE_SIZE(_CPad, 0x180); VALIDATE_OFFSET(_CPad, bDisablePlayerDuck, 0x15A);
+}(*Pads)[2]; VALIDATE_SIZE(_CPad, 0x180); VALIDATE_OFFSET(_CPad, NewState, 0x32);VALIDATE_OFFSET(_CPad, bDisablePlayerDuck, 0x15A);
 namespace CPad{
 	uintptr_t GetCarGunFired;
-	uintptr_t GetPedWalkLeftRight;
-	uintptr_t GetPedWalkUpDown;
 	inline void _Init(){
 		SET_TO(Pads, SYM("Pads"));
 		SET_TO(GetCarGunFired, SYM("_ZN4CPad14GetCarGunFiredEbbb"));
-		SET_TO(GetPedWalkLeftRight, SYM("_ZN4CPad19GetPedWalkLeftRightEbi"));
-		SET_TO(GetPedWalkUpDown, SYM("_ZN4CPad16GetPedWalkUpDownEbi"));
 	}
 }
 namespace CPed{
@@ -300,29 +299,21 @@ namespace CPlayerPed{
 		SET_TO(bDebugPlayerInvincible, SYM("_ZN10CPlayerPed22bDebugPlayerInvincibleE"));
 	}
 }
-/*struct CZoneInfo{
-	uint8 GangDensity[10];
-  	uint8 DrugDealerCounter;
-	CRGBA ZoneColor;
-	struct{
-		uint8 zonePopulationType : 5;
-		uint8 radarMode : 2;
-		uint8 noCops : 1;
-		uint8 zonePopulationRace : 4;
-	};
-	auto GetSumOfGangDensity()const{
-		uint32 sum = 0;
-		for(uint8 i:GangDensity)
-			sum += i;
-		return sum;
-	}
+struct CZoneInfo{
+	uint8 aGangStrengths[10];
+	uint8 DealerStrength;
+	CRGBA RadarColor;
+	uint8 ZonePopulationType : 5;
+	uint8 RadarMode : 2;
+	uint8 bNoCops : 1;
+	uint8 ZonePopulationRace : 4;
 };
 namespace CPopCycle{
 	CZoneInfo* *m_pCurrZoneInfo;
 	void _Init(){
 		SET_TO(m_pCurrZoneInfo, SYM("_ZN9CPopCycle15m_pCurrZoneInfoE"));
 	}
-}*/
+}
 using eBlipColour = uint32;
 enum eRadarSprite : int8 { RADAR_SPRITE_NONE };
 using eBlipDisplay = uint8; using eBlipType = uint8; using eBlipAppearance = uint8;
@@ -409,6 +400,13 @@ namespace CTimer{
 		SET_TO(ms_fTimeScale, SYM("_ZN6CTimer13ms_fTimeScaleE"));
 	}
 }
+namespace CTouchinterface{
+	enum WidgetIDs : uint32 {WIDGET_PED_MOVE = 160};
+	bool (*IsTouched)(WidgetIDs WidgetID, CVector2D *pVecOut, int nFrameCount);
+	inline void _Init(){
+		SET_TO(IsTouched, SYM("_ZN15CTouchInterface9IsTouchedENS_9WidgetIDsEP9FVector2Di"));
+	}
+}
 struct _UGameterSettings;
 namespace UGameterSettings{
 	void (*OnLanguageSetEv)(_UGameterSettings* self);
@@ -422,20 +420,21 @@ namespace UGTASingleton{
 		SET_TO(GetSettings, SYM("_ZN13UGTASingleton11GetSettingsEbbb"));
 	}
 }
+struct CHudColours{CRGBA value[16];};
 namespace {
 	int *AllowMissionReplay;
-	//void (*AsciiToGxtChar)(const char* src, wchar_t* dst);
 	_CPed* (*FindPlayerPed)(int playerId);
 	CVehicle* (*FindPlayerVehicle)(int playerId, bool bIncludeRemote);
+	CHudColours* HudColour;
 	uint32 (*OS_ScreenGetHeight)();
 	uint32 (*OS_ScreenGetWidth)();
 	bool (*SaveGameForPause)(eSaveTypes saveType, char* saveName);
 
 	void _Init(){
 		SET_TO(AllowMissionReplay, SYM("AllowMissionReplay"));
-		//SET_TO(AsciiToGxtChar, SYM("_Z14AsciiToGxtCharPKcPt"));
 		SET_TO(FindPlayerPed, SYM("_Z13FindPlayerPedi"));
 		SET_TO(FindPlayerVehicle, SYM("_Z17FindPlayerVehicleib"));
+		SET_TO(HudColour, SYM("HudColour"));
 		SET_TO(OS_ScreenGetHeight, SYM("_Z18OS_ScreenGetHeightv"));
 		SET_TO(OS_ScreenGetWidth, SYM("_Z17OS_ScreenGetWidthv"));
 		SET_TO(SaveGameForPause, SYM("_Z16SaveGameForPause10eSaveTypesPc"));
@@ -456,7 +455,7 @@ bool OpenVehDoor(CVehicle* pVeh, eDoors DoorID, float timeRatio, bool bPlaySound
 
 
 bool bRestoreDebuggingCheats, bIncreaseTimesCheated, bEnableTP, bShowFPS, bModernFonts, bEnableAutoSave, bSaveInInteriors, bFixMissingTextKey,
-	bFixIconInSea, bColorZoneName, bFixBoatMovingHi, bFixMissingShootBtnForPredator; uint8 nLastPatchGetCarGunFired;
+	bFixIconInSea;
 int nLastSavingTime, nSaveIntervalTime;
 float fMaxFPSToCalcColor;
 
@@ -500,12 +499,8 @@ DECL_HOOKv(CCheat__AddToCheatString, char LastPressedKey, bool p2){
 						RespondCheatActivited(true);
 				}
 			}else if(toupper(LastPressedKey) == 'T' && bInputtedNum){
-				// static float muscle = 200.f;
 				_CPed* ped = FindPlayerPed(-1);
 				if(ped){ //下面的部分基本算是几个opcode的重新实现（参考了KaizoM的脚本https://www.mixmods.com.br/2022/01/simple-skin-selector-ped-creator/）
-					//if(nID) muscle = CStats::GetStatValue(STAT_MUSCLE), CStats::SetStatValue(STAT_MUSCLE, 200.f);
-					//else CStats::SetStatValue(STAT_MUSCLE, muscle);
-					//CClothes::RebuildPlayer(ped, false);
 					CStreaming::RequestModel(nID, STREAMING_GAME_REQUIRED, false);
 					CStreaming::LoadAllRequestedModels(false);
 					if((*CStreaming::ms_aInfoForModel)[nID].m_status == LOADSTATE_LOADED){
@@ -663,71 +658,30 @@ DECL_HOOKv(CGame__Process){
 			}
 		}
 	}
-	if(bFixMissingShootBtnForPredator){
-		CVehicle* veh = FindPlayerVehicle(-1, false);
-		if(veh && veh->m_nModelIndex == MODEL_PREDATOR){
-			if(nLastPatchGetCarGunFired != 1){
-				logger->Info("Patching car gun");
-				aml->Write8(CPad::GetCarGunFired+0x195, 0xB9);
-				aml->Write8(CPad::GetCarGunFired+0x1E5, 0xB9);
-				nLastPatchGetCarGunFired = 1;
-			}
-		}else{
-			if(nLastPatchGetCarGunFired != 0){
-				logger->Info("Unpatching car gun");
-				aml->Write8(CPad::GetCarGunFired+0x195, 0x5D);
-				aml->Write8(CPad::GetCarGunFired+0x1E5, 0x5D);
-				nLastPatchGetCarGunFired = 0;
-			}
-		}
-	}
 	if(bFixMissingTextKey){
 		static bool fixed;
 		if(!fixed)
 			UGameterSettings::OnLanguageSetEv(UGTASingleton::GetSettings(false, false, false)),
 			fixed = true;
 	}
-	/*if(bFixBoatMovingHi){ //神奇UE之字符串指针在运行时初始化
-		uintptr_t ms_vehicleDescs = SYM("_ZN17CVehicleModelInfo15ms_vehicleDescsE"),
-			boatIds = *(uintptr_t*)(ms_vehicleDescs + 40);
-		logger->Info("ms_vehicleDescs 0x%x  boatIds 0x%x", ms_vehicleDescs, boatIds);
-		uintptr_t (*FName)(const char*, int, int);
-		SET_TO(FName, SYM("_ZN5FNameC2EPKci9EFindName"));
-		*(uintptr_t*)boatIds = FName("boat_moving", 11, 1);
-		bFixBoatMovingHi = false;
-	}*/
-}
-/*CRGBA* CalcZoneName(){
-	if((*CPopCycle::m_pCurrZoneInfo)){
-		CRGBA zoneColor=(*CPopCycle::m_pCurrZoneInfo)->ZoneColor;
-		if(zoneColor.r || zoneColor.g || zoneColor.b){
-			CRGBA c={};
-			if(bColorZoneName){
-				uint32 total = (*CPopCycle::m_pCurrZoneInfo)->GetSumOfGangDensity();
-				float weight = std::min(3*total/120.f, 1.f), weight2 = 1-weight;
-				c.r=sqrt(zoneColor.r*zoneColor.r*weight + zoneColor.g*zoneColor.g*weight2);
-				c.g=sqrt(zoneColor.g*zoneColor.g*weight + zoneColor.b*zoneColor.b*weight2);
-				c.b=sqrt(zoneColor.b*zoneColor.b*weight + zoneColor.a*zoneColor.a*weight2);
-			}else{
-				c.r=zoneColor.g;
-				c.g=zoneColor.b;
-				c.b=zoneColor.a;
-			}
-			return &c;
-		}
-	}
-	return nullptr;
 }
 
-__attribute__((optnone))ASM_NAKED void CHud__DrawAreaName(){
-	asm volatile(
-		"PUSH {X0-X23, S0-S14}\n"
-		"BL CalcZoneName\n"
-		"MOV X24, X0\n"
-		"POP {X0-X23, S0-S14}\n"
-
-	);
-}*/
+/* void BlendGangColor(gloss_reg *regs, GHook hook){
+	CZoneInfo* pCurrZoneInfo = *CPopCycle::m_pCurrZoneInfo;
+	double BlendVal = std::min(double(pCurrZoneInfo->RadarColor.a) / 180.0, 1.0);
+	CRGBA NewColor = BlendSqr((*HudColour).value[3], pCurrZoneInfo->RadarColor, BlendVal);
+	regs->regs.x9.w[0] = NewColor.r, regs->regs.x10.w[0] = NewColor.g, regs->regs.x11.w[0] = NewColor.b;
+} */
+DECL_HOOKv(CTaskSimpleCarCloseDoorFromOutside__StartAnim, void* self, const void* pPed){
+	if(!((*Pads)[0].DisablePlayerControls) && CTouchinterface::IsTouched(CTouchinterface::WIDGET_PED_MOVE, nullptr, 1))
+		(*Pads)[0].NewState.LeftStickX = 100;
+	CTaskSimpleCarCloseDoorFromOutside__StartAnim(self, pPed);
+}
+DECL_HOOK(int, CarColsDatLoad_sscanf, const char* str, const char* fmt, int *v1, int *v2, int *v3){
+	if(CarColsDatLoad_sscanf(str, fmt, v1, v2, v3) != 3)
+		return CarColsDatLoad_sscanf(str, "%d.%d %d", v1, v2, v3);
+	return 3;
+}
 
 void Init(){
 	GTASA::_Init();
@@ -749,13 +703,14 @@ void Init(){
 	CPed::_Init();
 	CPickups::_Init();
 	CPlayerPed::_Init();
-	//CPopCycle::_Init();
+	CPopCycle::_Init();
 	CRadar::_Init();
 	CRunningScript::_Init();
 	CStats::_Init();
 	CStreaming::_Init();
 	CTimer::_Init();
 	CTheScripts::_Init();
+	CTouchinterface::_Init();
 
 	cfg->Bind("IdeasFrom", "", "About")->SetString("RusJJ, Silent, KaizoM");
 
@@ -770,51 +725,85 @@ void Init(){
 	bModernFonts = cfg->GetBool("UseModernFonts", true, "Debugging");
 	bShowFPS = cfg->GetBool("ShowFPS", true, "Debugging");
 	fMaxFPSToCalcColor = cfg->GetFloat("MaxFPSToShowColor", 30.f, "Debugging");
-	//bEnableTP = cfg->GetBool("TeleportCheatTRAVELER", true, "Debugging");
 
 	bFixIconInSea = cfg->GetBool("FixRadarIconInSeaGlitch", true, "Gameplay");
 
 	if(cfg->GetBool("SprintOnAnySurface", true, "Gameplay"))
 		aml->Redirect(SYM("_ZN14SurfaceInfos_c12CantSprintOnEj"), uintptr_t(ret0));
 
-	if(nVer == V1_72 && cfg->GetBool("PlaneExplodeDisappearFix", true, "Gameplay")){
-		uintptr_t pBaseFunc = SYM("_ZN6CPlane9BlowUpCarEP7CEntityh");
-		aml->Write32(pBaseFunc + 0xFC, 0x14000036);
-		aml->PlaceNOP(pBaseFunc + 0x1E8);
+	if(cfg->GetBool("PlaneExplodeDisappearFix", true, "Gameplay")){
+		uintptr_t pBaseFunc = SYM("_ZN6CPlane9BlowUpCarEP7CEntityh"),
+			target = aml->PatternScan("68 AA 41 39 1F 1D 00 71 ?? ?? 00 54", pBaseFunc, 0x120); //LDRB W8, [X19,#0x6A]. CMP W8, #7. B.HI loc...
+		if(target)
+			ForceJump(target + 8);
 	}
 
 	bFixMissingTextKey = cfg->GetBool("FixMissingTextKey", true, "Visual");
 
-	if(cfg->GetBool("AbleToSkipCredits", true, "SCMFixes")){
+	if(nVer == V1_72 && cfg->GetBool("AbleToSkipCredits", true, "SCMFixes")){
 		uintptr_t pBaseFunc = SYM("_ZN14CRunningScript7ProcessEv");
 		aml->Write32(pBaseFunc + 0x24, 0x36000300);
 		aml->PlaceNOP(pBaseFunc + 0x28, 8);
 	}
 
-	if(cfg->GetBool("AllowAutoAimingOnRFMG", true, "Gameplay"))
+	if(nVer == V1_72 && cfg->GetBool("AllowAutoAimingOnRFMG", true, "Gameplay"))
 		aml->Write32(SYM("_ZN10CPlayerPed22FindWeaponLockOnTargetEi")+0xD8, 0xD2C00409);
 
-	if(nVer == V1_72 && cfg->GetBool("ClimbOnAnyVehicle", true, "Gameplay"))
-		aml->Write32(SYM("_ZN16CTaskSimpleClimb20ScanToGrabSectorListER8CPtrListP4CPedR7CVectorRfRhbbb")+0x4A0, 0x17FFFF81);
+	if(cfg->GetBool("ClimbOnAnyVehicle", true, "Gameplay")){
+		uintptr_t pBaseFunc = SYM("_ZN16CTaskSimpleClimb20ScanToGrabSectorListER8CPtrListP4CPedR7CVectorRfRhbbb"),
+			source = aml->PatternScan("1F 19 00 71 ?? ?? FF 54", pBaseFunc, 0x500), target = aml->PatternScan("E0 03 19 AA ?? ?? F2 97", pBaseFunc, 0x300);
+		if(source && target)aml->PlaceB(source, target);
+	}
 
-	if(nVer == V1_72 && (bFixMissingShootBtnForPredator = cfg->GetBool("FixMissingShootBtnForPredator", true, "Gameplay")))
-		aml->Write32(SYM("_ZN5CBoat14ProcessControlEv")+0x390, 0x52800021);
+	if(cfg->GetBool("FixMissingShootBtnForPredator", true, "Gameplay")){
+		uintptr_t target = aml->PatternScan("E1 03 1F 2A E2 03 1F 2A", SYM("_ZN5CBoat14ProcessControlEv"), 0x500);
+		if(target)aml->Write32(target, 0x52800021);
+	}
 
-	// bFixBoatMovingHi = cfg->GetBool("BoatRotatingRadarFix", false, "Visual");
-
-	if(nVer == V1_72 && (bColorZoneName = cfg->GetBool("ColouredZoneNames", true, "Visual")))
-		aml->Write(SYM("_ZN4CHud12DrawAreaNameEv")+0x3E4, "\x6A\x31\x40\x39" "\x6B\x35\x40\x39" "\x69\x00\x00\xB5" "\x4A\x00\x00\xB5" "\x8B\x00\x00\xB4", 20);
+	if(cfg->GetBool("ColouredZoneNames", true, "Visual")){
+		uintptr_t pBaseFunc = SYM("_ZN4CHud12DrawAreaNameEv"),
+			target = aml->PatternScan("69 2D 40 39 09 01 00 B4 6A 31 40 39", pBaseFunc, 0x420);
+		if(target){
+			aml->PlaceNOP(target - 20); //不用解锁帮派战争也能显示
+			aml->Write(target + 4, "\x6A\x31\x40\x39" "\x6B\x35\x40\x39" "\x69\x00\x00\xB5" "\x4A\x00\x00\xB5" "\x8B\x00\x00\xB4", 20);
+			//GlossHookInternalImpl((void*)(target + 24), BlendGangColor, nullptr, false, i_set::$ARM64); //没有用
+		}
+	}
 	
+	if(cfg->GetBool("FixVehMovingObjs", false, "Gameplay")){
+		uintptr_t pBaseFunc = SYM("_ZN11CAutomobile14ProcessControlEv"),
+			target = aml->PatternScan("?? 31 08 51 ?? A1 00 71", pBaseFunc, 0x1100);
+		if(target){ //改写switch跳转表
+			uintptr_t table = decodeADRL(target + 12);
+			if(*(int*)(target + 24) >> 30) //2字节为一单位
+				aml->Write16(table + 40, *(uint16*)table);
+			else //一字节为一单位
+				aml->Write8(table + 20, *(uint8*)table);
+		}
+		//TODO: 解决镜头高度错误，修复后默认值改为true
+		pBaseFunc = SYM("_ZN11CAutomobile21UpdateMovingCollisionEf");
+		target = aml->PatternScan("1F 81 08 71 ?? ?? 00 54 1F 31 08 71 ?? ?? 00 54", pBaseFunc, 0x200);
+		if(target){
+			aml->PlaceNOP(target, 3);
+			ForceJump(target + 12);
+		}
+	}
 
-	//aml->Write(SYM("_ZN8CPadBase18GetToggleCheatMenuEv")+0xC8, "\x60\x01\x80\x52" "\x21\x00\x80\x52" "\xE2\x03\x1F\x2A" "\x23\x00\x80\x52" "\xE1\x83\x1D\x94", 20);
-	//HOOKBL(CHud__DrawAreaName, pBaseFunc+0x3F8);
-	
+	if(cfg->GetBool("FixWrongCarCol", true, "Visual")){
+		uintptr_t pBaseFunc = SYM("_ZN17CVehicleModelInfo18LoadVehicleColoursEv"),
+			target = aml->PatternScan("?? 03 ?? AA ?? 03 ?? AA ?? 03 ?? AA ?? 03 ?? AA ?? ?? ?? 95", pBaseFunc, 0x500);
+		if(target)
+			HOOKBL(CarColsDatLoad_sscanf, target + 16);
+    }
+
+	if(cfg->GetBool("NotForcedToCloseVehDoor", true, "Gameplay"))
+        HOOKSYM(CTaskSimpleCarCloseDoorFromOutside__StartAnim, hUE4, "_ZN34CTaskSimpleCarCloseDoorFromOutside9StartAnimEPK4CPed");
+
 	/*if(cfg->GetBool("NoRadioCuts", true, "Gameplay"))
 		aml->Redirect(SYM("_Z14IsRemovedTracki"), (uintptr_t)ret0);*/
 
 	HOOKSYM(CCheat__AddToCheatString, hUE4, "_ZN6CCheat16AddToCheatStringEcb");
 	HOOKSYM(CGame__Process, hUE4, "_ZN5CGame7ProcessEv");
-	//HOOKSYM(OnLostFocusPause, hUE4, "_ZN4AHUD16OnLostFocusPauseEb");
 
 	cfg->Save(); // Will only save if something was changed
 }

@@ -28,40 +28,21 @@ typedef uintptr_t DWORD_PTR;
 #define LOBYTE(w) ((BYTE) (((DWORD_PTR) (w)) & 0xff))
 #define HIBYTE(w) ((BYTE) ((((DWORD_PTR) (w)) >> 8) & 0xff))
 
+//手打(￣へ￣)
+uintptr_t decodeADRL(uintptr_t addr){
+	uintptr_t pc = addr; int op1 = *(int*)addr, op2 = *(int*)(addr + 4);
+	return (pc & ~0xFFF) + (((((op1 >> 5) & 0x7FFFF) << 2) | (op1 >> 29) & 3) << 12) + ((op2 >> 10) & 0x3FFF);
+}
 
 #define STRU_PACKED_ALIGNED(n) __attribute__((packed)) __attribute__((aligned(n)))
 #define STRU_ALIGNED(n) __attribute__((aligned(n)))
+#define ASM __attribute__((optnone)) __attribute__((naked))
+#define CSTYLE extern 
 #define VALIDATE_SIZE(struc, size) static_assert(sizeof(struc) == size, "Invalid structure size of " #struc)
 #define VALIDATE_OFFSET(struc, member, offset) \
 	static_assert(offsetof(struc, member) == offset, "The offset of " #member " in " #struc " is not " #offset "...")
 
 typedef char16_t* FString;
-
-/*struct FString{
-	char16_t* Data;
-	int ArrayNum, ArrayMax;
-
-	FString(char16_t* simpleIn){
-		Data = simpleIn;
-	}
-	char16_t operator[](size_t index){
-		return Data[index];
-	}
-}; VALIDATE_SIZE(FString, 16);
-*/
-
-/*template<typename T> class Ref{
-	uintptr_t addr;
-	const char* sym;
-	uintptr_t offset = 0;
-	bool useSymbol;
-public:
-	Ref(uintptr_t addr):addr(addr){ useSymbol=false; }
-	Ref(const char* sym, uintptr_t offset=0):sym(sym),offset(offset){ useSymbol=true; }
-	operator T&() const{
-		return useSymbol ? *(T*)(SYM(sym)+offset) : *(T*)addr;
-	}
-};*/
 
 void AsciiToGxtChar(const char* src, char16_t* dst){
 	for(;*src;*dst++=*src++)
@@ -105,10 +86,28 @@ struct CRect {
 	float bottom    =  1000000.0F; // y2
 };
 
-struct CRGBA{
+struct CRGBA{ //定义来自SilentPatch
 	uint8 r, g, b, a;
-	CRGBA(){}
-	CRGBA(const CRGBA& src):r(src.r),g(src.g),b(src.b),a(src.a){}
+	inline CRGBA() {}
+	inline constexpr CRGBA(const CRGBA& in) : r(in.r), g(in.g), b(in.b), a(in.a){}
+	inline constexpr CRGBA(const CRGBA& in, uint8 alpha) : r(in.r), g(in.g), b(in.b), a(alpha){}
+	inline constexpr CRGBA(uint8 red, uint8 green, uint8 blue, uint8 alpha = 255) : r(red), g(green), b(blue), a(alpha){}
+
+	friend constexpr CRGBA Blend(const CRGBA& From, const CRGBA& To, double BlendVal){
+		const double InvBlendVal = 1.0 - BlendVal;
+		return CRGBA( uint8(To.r * BlendVal + From.r * InvBlendVal),
+			uint8(To.g * BlendVal + From.g * InvBlendVal),
+			uint8(To.b * BlendVal + From.b * InvBlendVal),
+			uint8(To.a * BlendVal + From.a * InvBlendVal));
+	}
+
+	friend constexpr CRGBA BlendSqr(const CRGBA& From, const CRGBA& To, double BlendVal){
+		const double InvBlendVal = 1.0 - BlendVal;
+		return CRGBA( uint8(sqrt((To.r * To.r) * BlendVal + (From.r * From.r) * InvBlendVal)),
+			uint8(sqrt((To.g * To.g) * BlendVal + (From.g * From.g) * InvBlendVal)),
+			uint8(sqrt((To.b * To.b) * BlendVal + (From.b * From.b) * InvBlendVal)),
+			uint8(sqrt((To.a * To.a) * BlendVal + (From.a * From.a) * InvBlendVal)));
+	}
 };
 struct CVector{
 	float x, y, z;

@@ -59,14 +59,16 @@ A plugin that brings improvements and fixes to GTA Trilogy Mobile.
 
 - **[SA][VC][III]** `FixMissingTextKey`：修复装了某些.pak模组包（如一些画质包）后，游戏的一些文字变为一长串“XXX missing”（文本缺失）。bug：重载存档时第一个显示的文本（右下角的地名或者任务名）会变为别的文字，但不影响正常游戏。
 - **[SA|特色]** `FixRadarIconInSeaGlitch`： 自动检测并修复CV（王氏车行）任务点和2个安全屋的图标在水中（地图中心）的最终版特有bug，无需开新档。
-- **[SA]** `AllowAutoAimingOnRFMG`：启用杠杆步枪和火神机枪的自动瞄准功能。（1.86版无效）
-- **[SA|未测试]** `AbleToSkipCredits`：在大结局后鸣谢名单中显示跳过按钮。
-<!-- - **[SA|不可用]** `BoatRotatingRadarFix`：某些船顶部有个的雷达部件因为bug没有旋转，该插件可修复，类似原版SilentPatch（目前不可用） -->
-<!-- - **[SA]** `ClimbOnAnyVehicle`：让车辆可以像建筑物一样能够被攀爬上。 -->
-<!-- - **[SA]** `ColouredZoneNames`： 屏幕右下角显示地名时，还会显示帮派地盘的颜色。这是在原版游戏损坏的功能，原版只会在一个地盘由多个帮派控制时才显示（官方把与/或条件弄混）。颜色计算方式类似于十周年版的JPatch（忽视帮派密度）而不是原版的SilentPatch（二次方变换）。 -->
-<!-- - **[SA]** `FixMissingShootBtnForPredator`：修复不显示驾驶捕食者（Predator）这艘船时的固定机炮开火按钮（最终版III和VC的这艘船都有开火按钮，SA因为bug没有） -->
-<!-- - **[SA]** `PlaneExplodeDisappearFix`：修复玩家驾驶的飞机在爆炸后消失，而不留残骸的bug。 -->
+- **[SA|仅1.72]** `AllowAutoAimingOnRFMG`：启用杠杆步枪和火神机枪的自动瞄准功能。（1.86版无效）
+- **[SA|仅1.72]** `AbleToSkipCredits`：在大结局后鸣谢名单中显示跳过按钮。
+- **[SA]** `NotForcedToCloseVehDoor`：下车时拉住左下角摇杆可以不关门。
+- **[SA]** `ClimbOnAnyVehicle`：让车辆可以像建筑物一样能够被攀爬上。
+- **[SA|部分可用]** `FixVehMovingObjs`：水泥罐车新加按钮，可以控制水泥罐旋转速度；消防云梯车（FIRELA）增加调节云梯高度的功能（镜头高度会出现严重bug）。
+- **[SA]** `ColouredZoneNames`： 屏幕右下角显示地名时，还会显示帮派地盘的颜色。这是在原版游戏损坏的功能，原版只会在一个地盘由多个帮派控制时才显示（官方把与/或条件弄混）。颜色计算方式忽视帮派密度而不是原版的SilentPatch（二次方变换）。
+- **[SA]** `FixMissingShootBtnForPredator`：修复不显示驾驶捕食者（Predator）这艘船时的固定机炮开火按钮（最终版III和VC的这艘船都有开火按钮，SA因为bug没有）
+- **[SA]** `PlaneExplodeDisappearFix`：修复玩家驾驶的飞机在爆炸后消失，而不留残骸的bug。
 - **[SA]** `SprintOnAnySurface`：在绝大多数室内空间可以冲刺。即原版和十周年的插件“Sprint Everywhere”。
+- **[SA|未测试]** `FixWrongCarCol`：修正carcols.dat中颜色#98（大烟哥蓝色汽车所用颜色）。
 - **[VC|部分可用]** `AbleToSkipTelephoneCall`：接听电话时可以按电话按钮挂断电话。功能bug：一旦挂电话之后，后续来电接听将会自动挂断
 - **[VC|未测试]** `AllowAutoAimingOnMG`：启用火神机枪的自动瞄准功能。功能bug：不可用
 - **[VC|未测试]** `FixLeafLinksBridgesTraffic`：修复高尔夫球场旁边那个大桥没有车流的bug。功能bug：不可用

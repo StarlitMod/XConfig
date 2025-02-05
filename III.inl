@@ -104,6 +104,18 @@ namespace{
 		SET_TO(SaveGameForPause, SYM("_ZN4GTA316SaveGameForPauseEi"));
 	}
 }
+struct CPed{
+	private: byte gap0[556];
+	uint32 bShakeFist : 1;
+	uint32 bNoCriticalHits : 1;
+	public:  uint32 bVehExitWillBeInstant : 1;
+};
+enum : int16{MI_SPEEDER = 142};
+struct CVehicle{
+	private: byte gap0[0x78];
+	public: int16 m_modelIndex;
+};VALIDATE_OFFSET(CVehicle, m_modelIndex, 0x78);
+enum AssocGroupId : int32;enum AnimationId{ANIM_STD_CAR_SIT = 0x6F};
 
 bool bEnableAutoSave, bModernFonts, bFixMissingTextKey;
 int nLastSavingTime, nSaveIntervalTime;
@@ -179,6 +191,20 @@ DECL_HOOK(int8, CRunningScript__ProcessCommands500To599, void* self, int command
 	return result;
 }
 
+bool bSitInBoat = false; CPed* pInstance;
+DECL_HOOKv(CPed__SetEnterCar_AllClear, CPed* self, CVehicle *car, uint32 doorNode, uint32 doorFlag){
+	if(car->m_modelIndex == MI_SPEEDER){
+		bSitInBoat = true, pInstance = self;
+	}
+	CPed__SetEnterCar_AllClear(self, car, doorNode, doorFlag);
+}
+DECL_HOOKp(CAnimManager__BlendAnimation, void *clump, AssocGroupId groupId, AnimationId animId, float delta){
+	if(bSitInBoat)animId = ANIM_STD_CAR_SIT;
+	void* ret = CAnimManager__BlendAnimation(clump, groupId, animId, delta);
+	pInstance->bVehExitWillBeInstant = true;
+	bSitInBoat = false;
+	return ret;
+}
 
 void Init(){
 	GTA3::_Init();
@@ -202,10 +228,42 @@ void Init(){
 		bModernFonts = cfg->GetBool("UseModernFonts", true, "Debugging");
 		fMaxFPSToCalcColor = cfg->GetFloat("MaxFPSToShowColor", 30.f, "Debugging");
 	}
-	
+
+	/*https://cookieplmonster.github.io/2024/10/25/silentpatch-goes-open-source/#stealth-fbi-cars
+	  https://github.com/CookiePLMonster/SilentPatch/blob/dev/SilentPatchIII/SilentPatchIII.cpp#L2456
+	  https://github.com/halpz/re3/blob/master/src/control/CarCtrl.cpp#L345
+	  Silent认为是测试版遗留，所以删除；re3只在注释中表明这一事实，未标FIX_BUGS*/
+	if(cfg->GetBool("FixFBICarColor", true, "Visual")){
+		uintptr_t pBaseFunc = SYM("_ZN4GTA38CCarCtrl20GenerateOneRandomCarEb");
+		if(pBaseFunc == 0)pBaseFunc = SYM("_ZN4GTA38CCarCtrl20GenerateOneRandomCarEv");
+		uintptr_t target = aml->PatternScan("BF AE 01 71", pBaseFunc, 0x1020); //CMP W21, #107
+		if(target){
+			target = aml->PatternScan("?? ?? FF 54", target, 20); //B.NE loc
+			if(target){
+				ForceJump(target); //B.NE改成B
+			}
+		}
+	}
 	bFixMissingTextKey = cfg->GetBool("FixMissingTextKey", true, "Visual");
 
-	if(cfg->GetBool("MafiaDontUseShotgun", false, "SCMFixes"))
+	/*https://cookieplmonster.github.io/2024/10/25/silentpatch-goes-open-source/#boat-driving-animations
+	  https://github.com/CookiePLMonster/SilentPatch/blob/dev/SilentPatchIII/SilentPatchIII.cpp#L2407
+	  https://github.com/halpz/re3/blob/master/src/peds/PedAI.cpp#L3534
+	  均修复
+	if(cfg->GetBool("BoatSittingAnimFix", true, "Gameplay")){
+		SET_TO(CAnimManager__BlendAnimation, SYM("_ZN4GTA312CAnimManager14BlendAnimationEP11AGTASKActorNS_12AssocGroupIdENS_11AnimationIdEf"));
+		uintptr_t pBaseFunc = SYM("_ZN4GTA34CPed20SetEnterCar_AllClearEPNS_8CVehicleEjj");
+		HOOK(CPed__SetEnterCar_AllClear, pBaseFunc);
+		uintptr_t target = aml->PatternScan("42 0F 80 52", pBaseFunc, 0x400); //MOV W2, #122
+		if(target){
+			target = aml->PatternScan("?? ?? ?? 97", pBaseFunc, 20); //BL ...
+			if(target){
+				aml->PlaceBL(target, (uintptr_t)HookOf_CAnimManager__BlendAnimation);
+			}
+		}
+	}*/
+
+	if(cfg->GetBool("MafiaDontUseShotgun", false, "Gameplay"))
 		HOOKSYM(CRunningScript__ProcessCommands500To599, hUE4, "_ZN4GTA314CRunningScript23ProcessCommands500To599Ei");
 
 	HOOKSYM(CGame__Process, hUE4, "_ZN4GTA35CGame7ProcessEv");

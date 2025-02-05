@@ -2,7 +2,9 @@
 #include "mod/logger.h"
 #include "mod/config.h"
 
-MYMOD(com.starlit.xconfig, XConfig, 0.12, BengbuGuards)
+//#include "include/Gloss.h"
+
+MYMOD(com.starlit.xconfig, XConfig, 0.13, BengbuGuards)
 static Config cfgLocal("XConfig");
 
 Config* cfg = &cfgLocal;
@@ -10,6 +12,9 @@ uintptr_t pUE4;
 void* hUE4;
 #define SYM(sym) (aml->GetSym(hUE4, sym))
 #include "types.inl"
+#define ForceJump(addr) aml->PlaceB((addr), aml->GetBranchDest(addr))
+//GHook (*GlossHookInternalImpl)(void *addr, GlossHookInternalCallback new_func, void *ret_addr, bool is_4_byte_hook, i_set mode);
+
 enum {III=1,VC,SA}nGame;
 enum {Netflex=1,Rockstar}nGameType;
 enum VERSION{V1_72=1, V1_8X, UNKNOWN}nVer;
@@ -37,8 +42,9 @@ extern "C" void OnModLoad()
 		logger->Info("Can't find libUE4, unloading...");
 		return;
 	}
+	//SETSYM_TO(GlossHookInternalImpl, aml->GetLibHandle("libAML.so"), "GlossHookInternal");
 	cfg->Bind("Author", "", "About")->SetString("BengbuGuards, XMDS");
-	cfg->Bind("Version", "", "About")->SetString("Beta-12");
+	cfg->Bind("Version", "", "About")->SetString("Beta-13");
 	const char* szGame = aml->GetCurrentGame();
 	logger->Info("Game %s", szGame);
 	#define _stricmp strcasecmp
