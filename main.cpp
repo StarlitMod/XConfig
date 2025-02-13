@@ -4,7 +4,7 @@
 
 //#include "include/Gloss.h"
 
-MYMOD(com.starlit.xconfig, XConfig, 0.13, BengbuGuards)
+MYMOD(com.starlit.xconfig, XConfig, 0.14, BengbuGuards)
 static Config cfgLocal("XConfig");
 
 Config* cfg = &cfgLocal;
@@ -44,7 +44,7 @@ extern "C" void OnModLoad()
 	}
 	//SETSYM_TO(GlossHookInternalImpl, aml->GetLibHandle("libAML.so"), "GlossHookInternal");
 	cfg->Bind("Author", "", "About")->SetString("BengbuGuards, XMDS");
-	cfg->Bind("Version", "", "About")->SetString("Beta-13");
+	cfg->Bind("Version", "", "About")->SetString("Beta-14");
 	const char* szGame = aml->GetCurrentGame();
 	logger->Info("Game %s", szGame);
 	#define _stricmp strcasecmp

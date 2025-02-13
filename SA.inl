@@ -77,6 +77,12 @@ namespace CClothes{
 		SET_TO(RebuildPlayer, SYM("_ZN8CClothes13RebuildPlayerEP10CPlayerPedb"));
 	}
 }
+namespace CColStore{
+	void (*RequestCollision)(const CVector *posn, int32 areaCode);
+	inline void _Init(){
+		SET_TO(RequestCollision, SYM("_ZN9CColStore16RequestCollisionERK7CVectori"));
+	}
+}
 namespace CDamageManager{
 	int (*GetCarNodeIndexFromDoor)(eDoors DoorIndex);
 	inline void _Init(){
@@ -262,6 +268,12 @@ namespace CPed{
 		SET_TO(SetModelIndex, SYM("_ZN4CPed13SetModelIndexEj"));
 	}
 }
+namespace CPedIntelligence{
+	void (*FlushImmediately)(void* self, bool bRestartDefaultTasks);
+	inline void _Init(){
+		SET_TO(FlushImmediately, SYM("_ZN16CPedIntelligence16FlushImmediatelyEb"));
+	}
+}
 enum ePickupType : uint8 {
 	PICKUP_NONE, PICKUP_IN_SHOP, PICKUP_ON_STREET, PICKUP_ONCE, PICKUP_ONCE_TIMEOUT, PICKUP_ONCE_TIMEOUT_SLOW,
 	PICKUP_COLLECTABLE1, PICKUP_IN_SHOP_OUT_OF_STOCK, PICKUP_MONEY, PICKUP_MINE_INACTIVE , PICKUP_MINE_ARMED,
@@ -382,6 +394,7 @@ namespace CStreaming{
 		SET_TO(SetModelIsDeletable, SYM("_ZN10CStreaming19SetModelIsDeletableEi"));
 	}
 }
+enum eTaskType : int32{TASK_COMPLEX_FALL_AND_GET_UP = 208, TASK_COMPLEX_KILL_PED_ON_FOOT = 1000, TASK_COMPLEX_DESTROY_CAR = 1003, TASK_SIMPLE_ARREST_PED = 1100};
 namespace CTheScripts{
 	//bool (*IsPlayerOnAMission)();
 	byte (*ScriptSpace)[339000];
@@ -528,7 +541,7 @@ DECL_HOOKv(CCheat__AddToCheatString, char LastPressedKey, bool p2){
 				if(index != -1){ //这里确保目标有效
 					CVector coord = (*CRadar::ms_RadarTrace)[index].m_vPosition;
 					logger->Info("Target %f %f", coord.x, coord.y);
-					//CColStore__RequestCollision(coord, 0);
+					CColStore::RequestCollision(&coord, 0);
 					CRunningScript::SetCharCoordinates(nullptr, ped, coord.x, coord.y, -100.f, true, true); //TODO: 提前载入该区域
 					RespondCheatActivited(true);
 				}
@@ -672,6 +685,35 @@ DECL_HOOKv(CGame__Process){
 	CRGBA NewColor = BlendSqr((*HudColour).value[3], pCurrZoneInfo->RadarColor, BlendVal);
 	regs->regs.x9.w[0] = NewColor.r, regs->regs.x10.w[0] = NewColor.g, regs->regs.x11.w[0] = NewColor.b;
 } */
+DECL_HOOKv(CRunningScript__GivePedScriptedTask, void *self, int32 iPedID, void *pTask, int32 CurrCommand){
+	#define givar(n) *((int*)*CTheScripts::ScriptSpace + n)
+	if(*CPlayerPed::bDebugPlayerInvincible
+		&& (CurrCommand == 0x05BE || CurrCommand == 0x0829) //05BE: task_die; 0829: task_die_named_anim
+		&& iPedID == givar(3)){ //$3 ≡ $PLAYER_ACTOR ≡ scplayer
+		if(givar(2923) == 2) {
+			givar(2908) = 1; //$2923 ≡ player_fall_state; $2908 ≡ player_landed
+			_CPed* pPed = FindPlayerPed(-1);
+			if(pPed)
+				CPedIntelligence::FlushImmediately(*(void**)((uintptr_t)pPed + 1512), true); //作用相当于0792: clear_char_tasks_immediately
+		}
+	} else CRunningScript__GivePedScriptedTask(self, iPedID, pTask, CurrCommand);
+}
+DECL_HOOKp(CTaskComplexArrestPed__CreateSubTask, void* self, int iSubTaskType, void *pPed){
+	if(*CPlayerPed::bDebugPlayerInvincible && iSubTaskType == TASK_SIMPLE_ARREST_PED){
+		if(FindPlayerVehicle(-1, false))iSubTaskType = TASK_COMPLEX_DESTROY_CAR;
+		else iSubTaskType = TASK_COMPLEX_KILL_PED_ON_FOOT;
+	}
+	return CTaskComplexArrestPed__CreateSubTask(self, iSubTaskType, pPed);
+}
+DECL_HOOKb(CTaskManager__FindActiveTaskByType, void* self, int iTaskType){
+	if(*CPlayerPed::bDebugPlayerInvincible && iTaskType == TASK_COMPLEX_FALL_AND_GET_UP) return 0;
+	return CTaskManager__FindActiveTaskByType(self, iTaskType);
+}
+DECL_HOOKb(CTaskSimpleArrestPed__ProcessPed, void* self, void* ped){
+	if(*CPlayerPed::bDebugPlayerInvincible)return false;
+	else return CTaskSimpleArrestPed__ProcessPed(self, ped);
+}
+
 DECL_HOOKv(CTaskSimpleCarCloseDoorFromOutside__StartAnim, void* self, const void* pPed){
 	if(!((*Pads)[0].DisablePlayerControls) && CTouchinterface::IsTouched(CTouchinterface::WIDGET_PED_MOVE, nullptr, 1))
 		(*Pads)[0].NewState.LeftStickX = 100;
@@ -691,6 +733,7 @@ void Init(){
 	CAutomobile::_Init();
 	CCheat::_Init();
 	CClothes::_Init();
+	CColStore::_Init();
 	CDamageManager::_Init();
 	CEntryExitManager::_Init();
 	CFont::_Init();
@@ -701,6 +744,7 @@ void Init(){
 	CModelInfo::_Init();
 	CPad::_Init();
 	CPed::_Init();
+	CPedIntelligence::_Init();
 	CPickups::_Init();
 	CPlayerPed::_Init();
 	CPopCycle::_Init();
@@ -780,7 +824,9 @@ void Init(){
 			else //一字节为一单位
 				aml->Write8(table + 20, *(uint8*)table);
 		}
-		//TODO: 解决镜头高度错误，修复后默认值改为true
+		pBaseFunc = SYM("_ZN4CCam20Process_FollowCar_SAERK7CVectorfffb"),
+			target = aml->PatternScan("3F D9 00 71", pBaseFunc, 0x500);
+		if(target)aml->Write32(target, 0x7100DD3F);
 		pBaseFunc = SYM("_ZN11CAutomobile21UpdateMovingCollisionEf");
 		target = aml->PatternScan("1F 81 08 71 ?? ?? 00 54 1F 31 08 71 ?? ?? 00 54", pBaseFunc, 0x200);
 		if(target){
@@ -803,6 +849,10 @@ void Init(){
 		aml->Redirect(SYM("_Z14IsRemovedTracki"), (uintptr_t)ret0);*/
 
 	HOOKSYM(CCheat__AddToCheatString, hUE4, "_ZN6CCheat16AddToCheatStringEcb");
+	HOOKSYM(CRunningScript__GivePedScriptedTask, hUE4, "_ZN14CRunningScript19GivePedScriptedTaskEiP5CTaski");
+	HOOKSYM(CTaskSimpleArrestPed__ProcessPed, hUE4, "_ZN20CTaskSimpleArrestPed10ProcessPedEP4CPed");
+	HOOKSYM(CTaskComplexArrestPed__CreateSubTask, hUE4, "_ZN21CTaskComplexArrestPed13CreateSubTaskEiP4CPed");
+	HOOKSYM(CTaskManager__FindActiveTaskByType, hUE4, "_ZNK12CTaskManager20FindActiveTaskByTypeEi");
 	HOOKSYM(CGame__Process, hUE4, "_ZN5CGame7ProcessEv");
 
 	cfg->Save(); // Will only save if something was changed

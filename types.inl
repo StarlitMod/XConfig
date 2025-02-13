@@ -56,14 +56,6 @@ void GxtCharToAscii(const char16_t* src, char* dst){
 	*dst=0;
 }
 
-template <typename... Args> inline void Call(uintptr_t address, Args... args) {
-    reinterpret_cast<void(*)(Args...)>(address)(args...);
-}
-
-template <typename Ret, typename... Args> inline Ret CallAndReturn(uintptr_t address, Args... args) {
-    return reinterpret_cast<Ret(*)(Args...)>(address)(args...);
-}
-
 enum eSaveTypes{
 	eCheckpointSave,
 	eAutoSave,
@@ -149,32 +141,3 @@ void CalcColorBadToGood(float value, float max, CRGBA& out){
 	}
 	out.a = 0xFF;
 }
-
-/*
-struct CPed {};
-struct CPlayerPed : CPed {};
-
-struct CPlayerInfo{
-  CPlayerPed *m_pPed;
-  //...
-};
-
-struct MobileMenu
-{
-  uint8 gap0[32];
-  char field_20[16];
-  char field_30[16];
-  uint8 gap40[40];
-  int m_nTargetBlipIndex;
-  short field_6C;
-  uint8 gap6E[6];
-  short field_74;
-  char field_76;
-};
-
-
-
-
-MobileMenu *gMobileMenu;
-tRadarTrace **CRadar__ms_RadarTrace;
-CPlayerInfo **CWorld__Players;*/
